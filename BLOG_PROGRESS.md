@@ -82,7 +82,7 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 | 4 Parser CLI | **Pass** | 7 top-level records; sleep value_text; Café; nested Correlation skipped (2) |
 | 5 Zip source | **Pass** | zip/dir/xml all yield 7 golden records via CLI |
 | 6 Wire TF | **Pass** | just demo → 7 rows from zip; TIMESTAMPTZ; value_text; filename member |
-| 7 Workouts / summaries | Not started | |
+| 7 Workouts / summaries | **Pass** | 1 Running workout; 2 activity summaries (old minutes + new move time) |
 | 8 Docs pass | Not started | |
 
 ### Gate 0 evidence
@@ -225,4 +225,16 @@ parse_health test/data             → 7 records (golden)
 ```text
 count(*) = 7, count(value) = 6
 typeof(start_date) = TIMESTAMP WITH TIME ZONE
+```
+
+### 2026-08-29 — Gate 7 workouts and activity summaries
+
+- `apple_health_workouts(path)` and `apple_health_activity_summaries(path)`.
+- SQLLogic stubs under `test/sql/workouts.test` and `activity_summaries.test`.
+- Fixture: one Running workout (25 min, 4.2 km, 280 kcal).
+- Summaries: 2020-06-01 has `apple_move_minutes=32` (move_time NULL); 2026-01-15 has `apple_move_time=41` (move_minutes NULL).
+
+```text
+just demo-workouts  → Running | 25 | 4.2 | 280
+just demo-summaries → two rows with old/new move attrs
 ```
