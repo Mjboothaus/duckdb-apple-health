@@ -92,7 +92,13 @@ demo-xml: fixture
     @test -f "{{ext}}" || { echo "Build first: just debug"; exit 1; }
     {{duckdb}} -unsigned -c "LOAD '{{ext}}'; SELECT count(*) AS n FROM read_apple_health('test/data/export.xml');"
 
-# Streaming XML parser CLI (no DuckDB). Builds if missing.
-parse-cli: fixture
+# Streaming parser CLI (no DuckDB). Builds if missing. Accepts xml/zip/dir.
+parse-cli path="test/data/export.xml": fixture
     @if ! test -x build/debug/parse_health; then make parse_health_cli; fi
-    build/debug/parse_health test/data/export.xml
+    build/debug/parse_health {{path}}
+
+parse-cli-zip: fixture
+    @just parse-cli test/data/export.zip
+
+parse-cli-dir: fixture
+    @just parse-cli test/data
