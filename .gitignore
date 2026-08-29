@@ -80,3 +80,4 @@ __pycache__/
 venv/
 
 # Note: do NOT ignore root Makefile — extension-template-c commits it.
+configure/

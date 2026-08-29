@@ -78,7 +78,7 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 | 0 Confirm machine | **Pass (with known gap)** | Tools OK; `just check-tools` + `just fixture` work after justfile fix; DuckDB still **1.5.2** (2.0-dev deferred to Gate 2) |
 | 1 Vendor template | **Pass** | PR #2; Makefile, duckdb_capi/, src sample, extension-ci-tools @ ef15a2a; EXT_NAME=apple_health |
 | 2 Unsigned load | **Pass on 1.5.2** | Built + loaded unsigned; path matches justfile; 2.0-dev still planned for later ABI work |
-| 3 TF spike | Not started | |
+| 3 TF spike | **Pass (3b)** | Stable C API table functions work; 3 hardcoded rows via `read_apple_health` |
 | 4 Parser CLI | Not started | |
 | 5 Zip source | Not started | |
 | 6 Wire TF | Not started | |
@@ -172,3 +172,18 @@ without -unsigned → IO Error: signature missing/invalid, unsigned disabled
 
 - justfile `ext_debug` path already correct — no path fix commit needed.
 - Surprise relative to brief: **1.5.2 CLI loads this C-API extension**. 2.0-dev still wanted for the stable-TF / long-term ABI story, but Gate 2 is green on the machine today.
+
+### 2026-08-29 — Gate 3 hardcoded table function
+
+- Stable C API **does** expose `duckdb_create_table_function` / bind / init / emit (Gate 3a avoided).
+- Added `src/apple_health_tf.c` + header; wired from entrypoint; CMake sources updated.
+- Spike ignores `path`, emits 3 rows: HeartRate 72, StepCount 1234, SleepAnalysis value NULL.
+- `start_date` is `TIMESTAMP` (UTC micros for 2026-01-15 06:30+11).
+
+```text
+duckdb -unsigned -c "LOAD '...'; FROM read_apple_health('ignored');"
+→ 3 rows, exit 0
+count(*) = 3, count(value) = 2
+```
+
+- No `USE_UNSTABLE_C_API`. Next: Step 4 streaming parser (no DuckDB headers).
