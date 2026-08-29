@@ -48,6 +48,16 @@ def duck_workout_routes(con: duckdb.DuckDBPyConnection, path: Path):
     ).fetchdf()
 
 
+def duck_route_points(con: duckdb.DuckDBPyConnection, path: Path):
+    return con.execute(
+        f"""
+        SELECT gpx_path, point_index, lat, lon, ele, time
+        FROM apple_health_workout_route_points('{sql_path(path)}')
+        ORDER BY gpx_path, point_index
+        """
+    ).fetchdf()
+
+
 def duck_summaries(con: duckdb.DuckDBPyConnection, path: Path):
     return con.execute(
         f"""

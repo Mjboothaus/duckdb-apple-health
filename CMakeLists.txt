@@ -34,6 +34,7 @@ set(EXTENSION_SOURCES
         src/apple_health_extension.c
         src/parse_health.c
         src/zip_source.c
+        src/parse_gpx.c
 )
 
 if (DUCKDB_WASM_EXTENSION)

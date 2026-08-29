@@ -28,6 +28,14 @@ const char *ah_xml_source_filename(const ah_xml_source *src);
 
 void ah_xml_source_close(ah_xml_source *src);
 
+/* Open a companion member relative to an export path.
+ * export_path: .zip / dir / export.xml
+ * logical_path: FileReference path, e.g. "/workout-routes/route_….gpx"
+ * Resolves zip member *…/workout-routes/… or filesystem next to export.xml.
+ */
+ah_xml_source *ah_xml_source_open_member(const char *export_path, const char *logical_path, char *err,
+                                         size_t err_len);
+
 /* Convenience: open path, parse with callbacks, close. */
 int ah_parse_health_path(const char *path, const ah_parse_callbacks *cb, ah_parse_stats *stats_out, char *err,
                          size_t err_len);
