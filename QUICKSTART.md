@@ -1,23 +1,20 @@
 # Quick start
 
-End-user path once a local unsigned build exists.  
-**Today (2026-08-29):** the repo has docs, fixtures, and a `justfile`. There is not yet a loadable `.duckdb_extension`. Come back to this file after `just debug` works.
+**v0.1.0-beta** — local unsigned build of the Apple Health scanner.
 
 ## 1. Export from the Health app
 
 On iPhone:
 
-1. Health → profile picture → **Export All Health Data**
-2. AirDrop or copy the zip to the Mac
-3. Optional: unzip. Either the zip or `export.xml` is fine
+1. Health → profile → **Export All Health Data**
+2. Copy the zip to the Mac (AirDrop, Files, etc.)
+3. Optional: unzip — zip, directory, or `export.xml` all work
 
-The zip is often several GB. That is normal.
+Multi-GB zips are normal. **Do not commit a real export to git.**
 
-Do not commit a real export to git.
+## 2. Build the extension
 
-## 2. Build the extension (developer preview)
-
-Needs DuckDB **2.0-dev / preview**, Xcode CLT, CMake, Python 3.
+Needs Xcode CLT, CMake, Python 3, and a DuckDB CLI that can load unsigned extensions (1.5+ works in testing; 2.0 is the target).
 
 ```bash
 git clone --recurse-submodules git@github.com:DataBooth/duckdb-apple-health.git
@@ -28,54 +25,62 @@ just configure
 just debug
 ```
 
-Load **unsigned**. Community install is not available yet.
+## 3. Load unsigned
 
 ```bash
 duckdb -unsigned
 ```
 
 ```sql
-LOAD 'build/debug/apple_health.duckdb_extension';
--- if LOAD cannot find that path, search:
---   find build -name '*.duckdb_extension'
+LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
+-- alternate path after debug:
+-- LOAD 'build/debug/apple_health.duckdb_extension';
 ```
 
-Update the path if the C-API template writes a different location. `justfile` variables `ext_debug` / `ext_release` should match reality.
+If `LOAD` cannot find the file:
 
-## 3. Query
+```bash
+find build -name '*.duckdb_extension'
+```
+
+`justfile` variables `ext_debug` / `ext_release` should match these paths.
+
+## 4. Query
 
 ```sql
--- zip from the Health app, or unzipped xml, or a directory containing export.xml
 FROM read_apple_health('~/Downloads/export.zip');
-
-FROM read_apple_health(
-  'export.zip',
-  types := ['HeartRate', 'StepCount'],
-  start := TIMESTAMPTZ '2026-01-01 00:00:00+11',
-  "end" := TIMESTAMPTZ '2026-02-01 00:00:00+11'
-);
 
 FROM apple_health_workouts('export.zip');
 FROM apple_health_activity_summaries('export.zip');
 ```
 
-Synthetic data for smoke tests (no PHI):
+Synthetic fixture (no PHI):
 
 ```bash
 just fixture
+just demo
+just demo-workouts
+just demo-summaries
 ```
 
 ```sql
 FROM read_apple_health('test/data/export.zip');
 ```
 
-## 4. Materialise once
+Named `types` / `start` / `end` filters are not in v0.1 yet — filter in SQL:
 
-Raw XML is a single-thread scan. After the first filter, write Parquet:
+```sql
+SELECT * FROM read_apple_health('export.zip')
+WHERE type_short = 'HeartRate';
+```
+
+## 5. Materialise once (recommended for large exports)
 
 ```sql
 COPY (
-  FROM read_apple_health('export.zip', types := ['HeartRate'])
+  SELECT *
+  FROM read_apple_health('export.zip')
+  WHERE type_short = 'HeartRate'
 ) TO 'hr.parquet' (FORMAT parquet);
 
 SELECT date_trunc('day', start_date) AS day, avg(value)
@@ -84,34 +89,49 @@ GROUP BY 1
 ORDER BY 1;
 ```
 
-## 5. What you will see
+v0.1 parses in bind and can use a lot of RAM on multi-GB XML. Parquet is the fast path for repeat analytics.
+
+## 6. Tests
+
+```bash
+just pytest-ext
+```
+
+## 7. Optional notebook
+
+```bash
+uv sync
+uv run marimo edit notebooks/explore_export.py
+```
+
+## What you will see
 
 | Column | Meaning |
 |---|---|
-| `type` | Full HealthKit id (`HKQuantityTypeIdentifierHeartRate`) |
-| `type_short` | `HeartRate` |
+| `type` | Full HealthKit id |
+| `type_short` | e.g. `HeartRate` |
 | `unit` | e.g. `count/min` |
 | `value` | Number, or null for categories |
-| `value_text` | Category string when `value` is null (sleep stages, etc.) |
-| `start_date` / `end_date` | `TIMESTAMPTZ` from `yyyy-MM-dd HH:mm:ss Z` |
+| `value_text` | Category string when `value` is null |
+| `start_date` / `end_date` | `TIMESTAMPTZ` |
 | `source_name` / `device` | App or Watch string |
-
-Sleep and other categories live in `value_text`, not `value`. `avg(value)` on a mixed scan will ignore those rows.
 
 ## Privacy
 
 The extension only reads a path you pass in. No network, no telemetry. Keep real exports off GitHub and out of CI logs.
 
-## Not in v0.1
+## Not in this beta
 
-Workout GPS routes, ECG files, clinical records, `INSTALL apple_health FROM community`, Wasm.
+Community `INSTALL`, Wasm, GPS routes, ECG, clinical records, bind-time progress bar, named scan filters.
 
 ## If something fails
 
 | Symptom | Check |
 |---|---|
-| `LOAD` refuses the file | Use `duckdb -unsigned` and a 2.0-dev CLI, not 1.5.x |
+| `LOAD` refuses the file | `duckdb -unsigned`; find the `.duckdb_extension` under `build/` |
 | File not found | `find build -name '*.duckdb_extension'` |
-| Query hangs on a 5 GB zip | Add `types` and/or `start`/`end`, then `COPY` to Parquet |
-| Dates look shifted | Offsets in the export are like `+1100`; parser must honour them |
-| `just configure` missing Makefile | C-API template is not vendored yet — see `IMPLEMENTATION_BRIEF.md` |
+| Slow / large RAM on big zip | Filter in SQL and `COPY` to Parquet; see [ROADMAP.md](ROADMAP.md) |
+| Dates look shifted | Offsets like `+1100` must be honoured (they are in v0.1) |
+| Tests fail | `just debug` then `just pytest-ext` |
+
+More detail: [DESIGN.md](DESIGN.md), [RELEASE_NOTES.md](RELEASE_NOTES.md).

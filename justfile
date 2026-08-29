@@ -110,3 +110,11 @@ demo-workouts: fixture
 demo-summaries: fixture
     @test -f "{{ext}}" || { echo "Build first: just debug"; exit 1; }
     {{duckdb}} -unsigned -c "LOAD '{{ext}}'; SELECT date_components, apple_move_minutes, apple_move_time, active_energy_burned FROM apple_health_activity_summaries('test/data/export.xml') ORDER BY date_components;"
+
+# Extension correctness tests (fixture). Requires `just debug` first.
+pytest-ext:
+    uv run pytest -q
+
+# Optional real-export smoke (path must stay outside the repo).
+pytest-ext-real export_zip:
+    APPLE_HEALTH_EXPORT_ZIP={{export_zip}} uv run pytest -q -m slow
