@@ -20,7 +20,8 @@ ext_debug   := "build/debug/extension/apple_health/apple_health.duckdb_extension
 ext_release := "build/release/extension/apple_health/apple_health.duckdb_extension"
 
 # Prefer debug binary if present.
-ext := if path_exists(ext_debug) { ext_debug } else { ext_release }
+# path_exists returns the strings "true"/"false"; if requires a comparison.
+ext := if path_exists(ext_debug) == "true" { ext_debug } else { ext_release }
 
 # ── meta ────────────────────────────────────────────────────────────────────
 

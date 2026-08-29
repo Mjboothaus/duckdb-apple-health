@@ -250,7 +250,8 @@ def write_golden_records(path: Path) -> None:
         "source_version",
     ]
     with path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        # Explicit LF so fixtures match across macOS/Windows/Linux.
+        writer = csv.DictWriter(fh, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         # Top-level records only (BP appears once, not via Correlation children).
         for rec in RECORDS + BP_RECORDS:

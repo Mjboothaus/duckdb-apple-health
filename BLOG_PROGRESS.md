@@ -1,0 +1,144 @@
+# Blog progress — duckdb-apple-health
+
+Working notes toward a final `BLOG_POST.md`. Not polished copy yet.
+Updated as gates land. Australian English for narrative; code/identifiers stay as-is.
+
+---
+
+## Angle (draft)
+
+Building a DuckDB **scanner** for Apple Health exports in **C**, on the **2.0 stable C API**, so multi-GB `export.zip` files become SQL without a Python ETL step — and without locking the extension to unstable C++ internals.
+
+Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch convert. The gap is HealthKit-aware, streaming, in-process SQL.
+
+---
+
+## Snapshot — 2026-08-29 (repo intake)
+
+### What the tree actually is
+
+- Public early-stage repo: docs, `justfile`, fixture generator, synthetic Health XML/CSV.
+- **No** C sources, **no** `Makefile` from `extension-template-c`, **no** `.duckdb_extension` yet.
+- Intent is frozen in `IMPLEMENTATION_BRIEF.md` (gated steps 0–8) and `DEV_PLAN.md`.
+
+### Locked product bets (from docs)
+
+| Bet | Choice |
+|---|---|
+| Language | C (parser/zip free of DuckDB headers) |
+| ABI | DuckDB 2.0 stable C API only |
+| Load path | Unsigned until 2.0 GA + community C-API CI |
+| Out of v0.1 | Wasm, routes/GPX, ECG, clinical records, community INSTALL |
+
+### Fixture design (already good story material)
+
+`scripts/make_fixture.py` writes fictional data only:
+
+- HR + steps (numeric), sleep category (non-numeric `value_text`)
+- `+1100` (Sydney) and `-0800` date offsets
+- Non-ASCII source name (`Café Run Club`)
+- Blood pressure both as top-level `Record`s **and** inside a `Correlation` (parser must not double-count)
+- One running workout; two activity summaries (old `appleMoveMinutes*` vs new `appleMoveTime*`)
+- Zip layout: `apple_health_export/export.xml` (matches real Health app layout)
+- Golden: **7** top-level records in `test/data/golden/records.csv`
+
+### Machine check (pre–Gate 0 formal run)
+
+| Tool | Result |
+|---|---|
+| Host | macOS, Apple Silicon expected |
+| `duckdb` on PATH | **v1.5.2** (`/opt/homebrew/bin/duckdb`) — **not** 2.0-dev |
+| Fixture files | `export.xml` + golden CSV present; **`export.zip` missing** until `just fixture` runs |
+| `just` recipes | **Broken today**: `justfile` line 23 uses brace `if` syntax the installed `just` rejects |
+| Template | Not vendored (`Makefile` absent; `.gitignore` even ignores root `Makefile`) |
+
+### Narrative hooks so far
+
+1. **Docs-first bootstrap** — product, plan, quickstart, and gated implementation brief before a single line of extension C.
+2. **Privacy as a design constraint** — synthetic fixtures, no real exports in git, no network/telemetry in the extension.
+3. **ABI patience** — bet on 2.0 stable C API; accept unsigned load and a possible “parser CLI first” fallback if table functions are not ready.
+4. **Immediate friction is mundane** — wrong DuckDB major on PATH, `just` dialect mismatch, zip not generated until the recipe works. Good reminder that “early stage” means glue as much as architecture.
+
+### Decisions (author, 2026-08-29)
+
+| Topic | Choice |
+|---|---|
+| DuckDB 2.0 | Compile against template on 1.5 first; install 2.0-dev before Gate 2 load |
+| justfile | Fix now for portable Mac/Windows/Linux |
+| Pace | Gate-by-gate from Step 0 leftovers into Step 1 |
+| Git | Feature branch + PR per brief commit guidance |
+| Blog | `BLOG_PROGRESS.md` only until the end; then `BLOG_POST.md` |
+
+---
+
+## Gate log
+
+| Gate | Status | Evidence / notes |
+|---|---|---|
+| 0 Confirm machine | **Pass (with known gap)** | Tools OK; `just check-tools` + `just fixture` work after justfile fix; DuckDB still **1.5.2** (2.0-dev deferred to Gate 2) |
+| 1 Vendor template | In progress next | |
+| 2 Unsigned load | Not started | Needs 2.0-dev CLI |
+| 3 TF spike | Not started | |
+| 4 Parser CLI | Not started | |
+| 5 Zip source | Not started | |
+| 6 Wire TF | Not started | |
+| 7 Workouts / summaries | Not started | |
+| 8 Docs pass | Not started | |
+
+### Gate 0 evidence
+
+```text
+== tools ==
+Python 3.14.4
+cmake version 4.3.1
+Apple clang version 17.0.0
+just 1.49.0
+v1.5.2 (Variegata)   # DuckDB — not yet 2.0-dev
+ninja: 1.13.2
+ccache: 4.13.3
+template Makefile: NOT YET
+
+just fixture → 7 records, 1 workout, 2 activity summaries
++ test/data/export.zip
+```
+
+justfile bug: `if path_exists(x)` is invalid; must be `if path_exists(x) == "true"` (path_exists returns strings).
+
+---
+
+## Chronology (append-only)
+
+### 2026-08-29 — Intake
+
+- Cloned / pulled `DataBooth/duckdb-apple-health` on `main` (`f31dcad`).
+- Read `IMPLEMENTATION_BRIEF.md`, `README.md`, `DEV_PLAN.md`, `QUICKSTART.md`, `justfile`, `scripts/make_fixture.py`.
+- Confirmed fixture semantics vs golden CSV (7 records).
+- Started this progressive record for a later `BLOG_POST.md`.
+
+### 2026-08-29 — Gate 0 + author decisions
+
+- Fixed justfile `path_exists` comparison; fixture CSV forced to LF.
+- Committed synthetic `export.zip`.
+- Branch workflow: feature branch + PR.
+- Next: vendor `extension-template-c` as `apple_health` (Step 1).
+
+---
+
+## Draft outline for final post
+
+1. The gap: Health export → SQL without leaving the process  
+2. Why a scanner, not a warehouse  
+3. Betting on DuckDB 2.0 stable C API (and what we refused to do)  
+4. Fixtures before code (and why PHI never enters the repo)  
+5. Gate-by-gate build diary (unsigned load → hardcoded TF → SAX parser → zip → real scan)  
+6. What broke on day one (toolchain, justfile, 1.5 vs 2.0)  
+7. What v0.1 does and deliberately does not  
+8. Next: community install when the platform catches up  
+
+---
+
+## Snippets / quotes to reuse
+
+- From README: “Raw XML is a scan. Parquet is the fast path. That is intentional.”
+- From brief: “Parser and zip code must not `#include` DuckDB headers.”
+- From DEV_PLAN: peak memory = one XML element + one output chunk.
