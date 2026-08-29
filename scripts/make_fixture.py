@@ -200,11 +200,22 @@ def build_xml() -> str:
     lines.append("  </Correlation>")
 
     for w in WORKOUTS:
+        lines.append(f'  <Workout {_attrs(w)}>')
         lines.append(
-            f'  <Workout {_attrs(w)}>'
-            f'<WorkoutEvent type="HKWorkoutEventTypePause" date="2026-01-15 07:10:00 +1100"/>'
-            f"</Workout>"
+            '    <WorkoutEvent type="HKWorkoutEventTypePause" date="2026-01-15 07:10:00 +1100"/>'
         )
+        lines.append(
+            '    <WorkoutRoute sourceName="Demo Phone" sourceVersion="18.0" '
+            'device="&lt;&lt;HKDevice: 0x0, name:Demo Phone&gt;&gt;" '
+            'creationDate="2026-01-15 07:26:00 +1100" '
+            'startDate="2026-01-15 07:00:00 +1100" '
+            'endDate="2026-01-15 07:25:00 +1100">'
+        )
+        lines.append(
+            '      <FileReference path="/workout-routes/route_2026-01-15_7.25am.gpx"/>'
+        )
+        lines.append("    </WorkoutRoute>")
+        lines.append("  </Workout>")
 
     for s in SUMMARIES:
         lines.append(f"  <ActivitySummary {_attrs(s)}/>")
@@ -273,6 +284,8 @@ def write_golden_records(path: Path) -> None:
             )
 
 
+DEMO_GPX = """<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.1\" creator=\"apple_health_fixture\">\n  <trk>\n    <name>Demo Run</name>\n    <trkseg>\n      <trkpt lat=\"-33.8688\" lon=\"151.2093\"><ele>12.0</ele><time>2026-01-14T20:00:00Z</time></trkpt>\n      <trkpt lat=\"-33.8690\" lon=\"151.2100\"><ele>13.5</ele><time>2026-01-14T20:05:00Z</time></trkpt>\n      <trkpt lat=\"-33.8695\" lon=\"151.2110\"><ele>14.0</ele><time>2026-01-14T20:10:00Z</time></trkpt>\n    </trkseg>\n  </trk>\n</gpx>\n"""
+
 def main() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     GOLDEN.mkdir(parents=True, exist_ok=True)
@@ -285,6 +298,10 @@ def main() -> None:
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         # Health app layout is typically apple_health_export/export.xml
         zf.writestr("apple_health_export/export.xml", xml)
+        zf.writestr(
+            "apple_health_export/workout-routes/route_2026-01-15_7.25am.gpx",
+            DEMO_GPX,
+        )
 
     write_golden_records(GOLDEN / "records.csv")
 
@@ -293,6 +310,7 @@ def main() -> None:
     print(f"wrote { (GOLDEN / 'records.csv').relative_to(ROOT) }")
     print(f"records (top-level): {len(RECORDS) + len(BP_RECORDS)}")
     print(f"workouts: {len(WORKOUTS)}")
+    print("workout routes: 1")
     print(f"activity summaries: {len(SUMMARIES)}")
 
 

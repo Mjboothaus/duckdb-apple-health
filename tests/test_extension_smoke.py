@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from tests.helpers import duck_records, duck_summaries, duck_workouts, sql_path
+from tests.helpers import duck_records, duck_summaries, duck_workout_routes, duck_workouts, sql_path
 
 
 def test_extension_loads(con, fixture_zip):
@@ -124,3 +124,11 @@ def test_directory_path(con, fixture_xml, repo_root):
         f"SELECT count(*) FROM read_apple_health('{sql_path(data_dir)}')"
     ).fetchone()[0]
     assert n == 7
+
+
+def test_fixture_workout_routes(con, fixture_zip):
+    r = duck_workout_routes(con, fixture_zip)
+    assert len(r) == 1
+    assert r.iloc[0]["workout_activity_type_short"] == "Running"
+    assert r.iloc[0]["gpx_path"] == "/workout-routes/route_2026-01-15_7.25am.gpx"
+    assert r.iloc[0]["source_name"] == "Demo Phone"

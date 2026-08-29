@@ -281,6 +281,26 @@ static void fill_summary_from_attrs(ah_activity_summary *row, const ah_attr_map 
 	}
 }
 
+
+static void fill_route_from_attrs(ah_workout_route *row, const ah_attr_map *m, const ah_workout *parent, int has_parent) {
+	memset(row, 0, sizeof(*row));
+	if (has_parent && parent) {
+		copy_attr(row->workout_activity_type, sizeof(row->workout_activity_type), parent->activity_type);
+		copy_attr(row->workout_activity_type_short, sizeof(row->workout_activity_type_short), parent->activity_type_short);
+		copy_attr(row->workout_start_date, sizeof(row->workout_start_date), parent->start_date);
+		copy_attr(row->workout_end_date, sizeof(row->workout_end_date), parent->end_date);
+	}
+	copy_attr(row->start_date, sizeof(row->start_date), attr_get(m, "startDate") ? attr_get(m, "startDate") : "");
+	copy_attr(row->end_date, sizeof(row->end_date), attr_get(m, "endDate") ? attr_get(m, "endDate") : "");
+	copy_attr(row->creation_date, sizeof(row->creation_date),
+	          attr_get(m, "creationDate") ? attr_get(m, "creationDate") : "");
+	copy_attr(row->source_name, sizeof(row->source_name), attr_get(m, "sourceName") ? attr_get(m, "sourceName") : "");
+	copy_attr(row->source_version, sizeof(row->source_version),
+	          attr_get(m, "sourceVersion") ? attr_get(m, "sourceVersion") : "");
+	copy_attr(row->device, sizeof(row->device), attr_get(m, "device") ? attr_get(m, "device") : "");
+	row->gpx_path[0] = '\0';
+}
+
 /* ---------------------------------------------------------------------------
  * Streaming tag scanner (no DOM, no external XML lib)
  *
@@ -294,7 +314,25 @@ typedef struct {
 	ah_parse_stats stats;
 	int correlation_depth;
 	int workout_depth;
+	/* Snapshot of current open Workout attrs for nested WorkoutRoute. */
+	ah_workout current_workout;
+	int has_current_workout;
+	/* Pending WorkoutRoute attrs until FileReference or end. */
+	ah_workout_route pending_route;
+	int has_pending_route;
 } ah_parser;
+
+static void emit_pending_route(ah_parser *P) {
+	if (!P->has_pending_route) {
+		return;
+	}
+	if (P->cb && P->cb->on_workout_route) {
+		P->cb->on_workout_route(&P->pending_route, P->cb->userdata);
+	}
+	P->stats.workout_routes++;
+	P->has_pending_route = 0;
+	memset(&P->pending_route, 0, sizeof(P->pending_route));
+}
 
 static int is_name_start(unsigned char c) {
 	return isalpha(c) || c == '_' || c == ':';
@@ -373,14 +411,39 @@ static void handle_start_tag(ah_parser *P, const char *name, const ah_attr_map *
 	}
 	if (strcmp(name, "Workout") == 0) {
 		P->workout_depth++;
+		ah_workout row;
+		fill_workout_from_attrs(&row, attrs);
+		P->current_workout = row;
+		P->has_current_workout = 1;
 		if (P->cb && P->cb->on_workout) {
-			ah_workout row;
-			fill_workout_from_attrs(&row, attrs);
 			P->cb->on_workout(&row, P->cb->userdata);
 		}
 		P->stats.workouts++;
 		if (self_closing) {
 			P->workout_depth--;
+			P->has_current_workout = 0;
+			memset(&P->current_workout, 0, sizeof(P->current_workout));
+		}
+		return;
+	}
+	if (strcmp(name, "WorkoutRoute") == 0) {
+		/* Finish any previous route without FileReference. */
+		emit_pending_route(P);
+		fill_route_from_attrs(&P->pending_route, attrs, &P->current_workout, P->has_current_workout);
+		P->has_pending_route = 1;
+		if (self_closing) {
+			emit_pending_route(P);
+		}
+		return;
+	}
+	if (strcmp(name, "FileReference") == 0) {
+		const char *path = attr_get(attrs, "path");
+		if (P->has_pending_route && path) {
+			copy_attr(P->pending_route.gpx_path, sizeof(P->pending_route.gpx_path), path);
+		}
+		/* Emit on FileReference when nested under a pending route (common shape). */
+		if (P->has_pending_route) {
+			emit_pending_route(P);
 		}
 		return;
 	}
@@ -412,8 +475,15 @@ static void handle_start_tag(ah_parser *P, const char *name, const ah_attr_map *
 static void handle_end_tag(ah_parser *P, const char *name) {
 	if (strcmp(name, "Correlation") == 0 && P->correlation_depth > 0) {
 		P->correlation_depth--;
+	} else if (strcmp(name, "WorkoutRoute") == 0) {
+		/* Route without FileReference still emits (empty gpx_path). */
+		emit_pending_route(P);
 	} else if (strcmp(name, "Workout") == 0 && P->workout_depth > 0) {
 		P->workout_depth--;
+		if (P->workout_depth == 0) {
+			P->has_current_workout = 0;
+			memset(&P->current_workout, 0, sizeof(P->current_workout));
+		}
 	}
 }
 

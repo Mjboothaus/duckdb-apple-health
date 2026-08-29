@@ -116,6 +116,9 @@ parse-cli-dir: fixture
 demo-workouts: fixture ensure-ext
     {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT activity_type_short, duration, total_distance, total_energy FROM apple_health_workouts('test/data/export.zip');"
 
+demo-routes: fixture ensure-ext
+    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT workout_activity_type_short, gpx_path, source_name FROM apple_health_workout_routes('test/data/export.zip');"
+
 demo-summaries: fixture ensure-ext
     {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT date_components, apple_move_minutes, apple_move_time, active_energy_burned FROM apple_health_activity_summaries('test/data/export.xml') ORDER BY date_components;"
 
