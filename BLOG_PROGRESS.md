@@ -76,7 +76,7 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 | Gate | Status | Evidence / notes |
 |---|---|---|
 | 0 Confirm machine | **Pass (with known gap)** | Tools OK; `just check-tools` + `just fixture` work after justfile fix; DuckDB still **1.5.2** (2.0-dev deferred to Gate 2) |
-| 1 Vendor template | In progress next | |
+| 1 Vendor template | **Pass (pending commit)** | Makefile, duckdb_capi/, src sample, extension-ci-tools submodule; EXT_NAME=apple_health |
 | 2 Unsigned load | Not started | Needs 2.0-dev CLI |
 | 3 TF spike | Not started | |
 | 4 Parser CLI | Not started | |
@@ -142,3 +142,13 @@ justfile bug: `if path_exists(x)` is invalid; must be `if path_exists(x) == "tru
 - From README: “Raw XML is a scan. Parquet is the fast path. That is intentional.”
 - From brief: “Parser and zip code must not `#include` DuckDB headers.”
 - From DEV_PLAN: peak memory = one XML element + one output chunk.
+
+### 2026-08-29 — Step 1 vendor extension-template-c
+
+- Cloned `duckdb/extension-template-c` with submodules.
+- Copied Makefile, CMakeLists, duckdb_capi, sample src, test/sql, CI workflow.
+- Added `extension-ci-tools` submodule @ ef15a2a (v1.5 line).
+- Renamed extension id `capi_quack` → `apple_health` (kept `src/capi_quack.c` filename for now).
+- Stopped ignoring root `Makefile` in `.gitignore`.
+- `USE_UNSTABLE_C_API` remains 0.
+- Template pins `TARGET_DUCKDB_VERSION=v1.2.0`; CI workflow references DuckDB v1.5.4 / variegata tools — note for Gate 2 / 2.0-dev story.
