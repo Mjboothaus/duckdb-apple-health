@@ -1,4 +1,5 @@
 #include "parse_health.h"
+#include "zip_source.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -68,8 +69,10 @@ static void on_summary(const ah_activity_summary *row, void *userdata) {
 }
 
 static void usage(const char *argv0) {
-	fprintf(stderr, "Usage: %s <export.xml>\n", argv0);
-	fprintf(stderr, "Streams Apple Health export.xml; prints top-level Record rows as CSV.\n");
+	fprintf(stderr, "Usage: %s <export.xml|export.zip|export-dir>\n", argv0);
+	fprintf(stderr,
+	        "Streams Apple Health export; prints top-level Record rows as CSV.\n"
+	        "Path may be export.xml, a zip containing **/export.xml, or a directory with export.xml.\n");
 }
 
 int main(int argc, char **argv) {
@@ -96,9 +99,11 @@ int main(int argc, char **argv) {
 	fputs("type,type_short,unit,value,value_text,start_date,end_date,creation_date,source_name,source_version\n",
 	      stdout);
 
-	int rc = ah_parse_xml_file(path, &cb, &stats);
+	char err[256];
+	err[0] = '\0';
+	int rc = ah_parse_health_path(path, &cb, &stats, err, sizeof(err));
 	if (rc != 0) {
-		fprintf(stderr, "parse failed (%d) for %s\n", rc, path);
+		fprintf(stderr, "parse failed (%d) for %s: %s\n", rc, path, err[0] ? err : "(unknown)");
 		return 1;
 	}
 	fprintf(stderr, "records=%zu workouts=%zu activity_summaries=%zu skipped_nested_records=%zu\n", stats.records,

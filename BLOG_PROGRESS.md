@@ -80,7 +80,7 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 | 2 Unsigned load | **Pass on 1.5.2** | Built + loaded unsigned; path matches justfile; 2.0-dev still planned for later ABI work |
 | 3 TF spike | **Pass (3b)** | Stable C API table functions work; 3 hardcoded rows via `read_apple_health` |
 | 4 Parser CLI | **Pass** | 7 top-level records; sleep value_text; Café; nested Correlation skipped (2) |
-| 5 Zip source | Not started | |
+| 5 Zip source | **Pass** | zip/dir/xml all yield 7 golden records via CLI |
 | 6 Wire TF | Not started | |
 | 7 Workouts / summaries | Not started | |
 | 8 Docs pass | Not started | |
@@ -200,4 +200,18 @@ count(*) = 3, count(value) = 2
 ```text
 records=7 workouts=1 activity_summaries=2 skipped_nested_records=2
 diff golden == empty
+```
+
+### 2026-08-29 — Gate 5 zip source
+
+- `src/zip_source.c` / `.h`: path may be `.zip`, directory, or xml file.
+- Minimal ZIP reader (central directory + local header) + zlib raw DEFLATE.
+- Fixture member `apple_health_export/export.xml` found via `**/export.xml` match.
+- Inflates to a temp file, then reuses `ah_parse_xml_filep`.
+- CLI now calls `ah_parse_health_path` for all path kinds.
+
+```text
+parse_health test/data/export.xml  → 7 records (golden)
+parse_health test/data/export.zip  → 7 records (golden)
+parse_health test/data             → 7 records (golden)
 ```

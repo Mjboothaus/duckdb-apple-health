@@ -34,6 +34,7 @@ set(EXTENSION_SOURCES
         src/apple_health_tf.c
         src/capi_quack.c
         src/parse_health.c
+        src/zip_source.c
 )
 
 if (DUCKDB_WASM_EXTENSION)
@@ -54,3 +55,7 @@ target_include_directories(${EXTENSION_NAME} PRIVATE src src/include)
 
 # Include DuckDB C API headers
 target_include_directories(${EXTENSION_NAME} PRIVATE duckdb_capi)
+
+# zlib for zip_source (DEFLATE members in export.zip)
+find_package(ZLIB REQUIRED)
+target_link_libraries(${EXTENSION_NAME} PRIVATE ZLIB::ZLIB)

@@ -33,7 +33,13 @@ clean: clean_build clean_cmake
 clean_all: clean clean_configure
 
 # Standalone streaming XML parser CLI (no DuckDB). Used for Gate 4+.
+# zlib: system -lz; optional Homebrew prefix via ZLIB_PREFIX.
+ZLIB_PREFIX ?= $(shell brew --prefix zlib 2>/dev/null)
+ZLIB_CFLAGS = $(if $(ZLIB_PREFIX),-I$(ZLIB_PREFIX)/include,)
+ZLIB_LIBS = $(if $(ZLIB_PREFIX),-L$(ZLIB_PREFIX)/lib,) -lz
+
 .PHONY: parse_health_cli
 parse_health_cli:
 	@mkdir -p build/debug
-	$(CC) -std=c11 -Wall -Wextra -O2 -I src -o build/debug/parse_health src/parse_health.c src/parse_health_main.c
+	$(CC) -std=c11 -Wall -Wextra -O2 -I src $(ZLIB_CFLAGS) -o build/debug/parse_health \
+		src/parse_health.c src/zip_source.c src/parse_health_main.c $(ZLIB_LIBS)
