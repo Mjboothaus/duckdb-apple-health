@@ -81,7 +81,7 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 | 3 TF spike | **Pass (3b)** | Stable C API table functions work; 3 hardcoded rows via `read_apple_health` |
 | 4 Parser CLI | **Pass** | 7 top-level records; sleep value_text; Café; nested Correlation skipped (2) |
 | 5 Zip source | **Pass** | zip/dir/xml all yield 7 golden records via CLI |
-| 6 Wire TF | Not started | |
+| 6 Wire TF | **Pass** | just demo → 7 rows from zip; TIMESTAMPTZ; value_text; filename member |
 | 7 Workouts / summaries | Not started | |
 | 8 Docs pass | Not started | |
 
@@ -214,4 +214,15 @@ diff golden == empty
 parse_health test/data/export.xml  → 7 records (golden)
 parse_health test/data/export.zip  → 7 records (golden)
 parse_health test/data             → 7 records (golden)
+```
+
+### 2026-08-29 — Gate 6 wire TF
+
+- Replaced hardcoded spike with real scan: bind opens path via `zip_source`, streams `parse_health`, buffers records, emits v0.1 columns.
+- `start_date` / `end_date` / `creation_date` as `TIMESTAMP WITH TIME ZONE` (Apple offsets honoured).
+- `just demo` against `test/data/export.zip` → 7 rows; sleep has NULL value + value_text; Café source; filename `apple_health_export/export.xml`.
+
+```text
+count(*) = 7, count(value) = 6
+typeof(start_date) = TIMESTAMP WITH TIME ZONE
 ```
