@@ -1,0 +1,11 @@
+# name: test/sql/workouts.test
+# description: apple_health_workouts table function
+# group: [apple_health]
+
+require apple_health
+
+query III
+SELECT activity_type_short, duration, total_distance
+FROM apple_health_workouts('test/data/export.xml');
+----
+Running	25.0	4.2
