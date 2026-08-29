@@ -23,7 +23,6 @@
 *.dll
 *.so.*
 
-
 # Fortran module files
 *.mod
 *.smod
@@ -39,16 +38,16 @@
 *.out
 *.app
 
-# Build directories
+# Build directories (template + local)
 build/
 Build/
 build-*/
+cmake_build/
 
 # CMake generated files
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 install_manifest.txt
 compile_commands.json
 
@@ -67,6 +66,11 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+duckdb_unittest_tempdir/
+/test/bin/
+
+# IDE
+.idea/
 
 # Python
 __pycache__/
@@ -74,3 +78,5 @@ __pycache__/
 .Python
 .venv/
 venv/
+
+# Note: do NOT ignore root Makefile — extension-template-c commits it.
