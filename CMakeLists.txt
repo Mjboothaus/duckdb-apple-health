@@ -31,6 +31,7 @@ project(${EXTENSION_NAME} LANGUAGES C)
 # Create Extension library
 set(EXTENSION_SOURCES
         src/add_numbers.c
+        src/apple_health_tf.c
         src/capi_quack.c
 )
 
