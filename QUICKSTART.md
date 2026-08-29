@@ -21,8 +21,8 @@ git clone --recurse-submodules git@github.com:DataBooth/duckdb-apple-health.git
 cd duckdb-apple-health
 brew install cmake ninja ccache just
 just check-tools
-just configure
-just debug
+just bootstrap   # configure (if needed) + debug + fixture
+# or: just configure && just debug
 ```
 
 ## 3. Load unsigned

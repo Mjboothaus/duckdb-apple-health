@@ -39,7 +39,7 @@ Known v0.1 limits (honest):
 ## Near term — v0.1.x (correctness & ergonomics)
 
 1. **Zip inflate completeness** — **done** (this cycle): require `Z_STREAM_END` + central-directory sizes for data-descriptor members; real `export.zip` matches bare `export.xml` (HRV −2 gap closed).  
-2. **justfile uplift** — one-shot bootstrap (`configure` if needed + `debug` + fixture); make `pytest-ext` build debug when missing; refresh stale “template not vendored” comments; optional `demo-real export_zip=…` for ad-hoc counts. Keep Makefile as the single source of truth for CMake/metadata.  
+2. **justfile uplift** — **done**: `just bootstrap`; `ensure-ext` so demos/`pytest-ext` build debug when missing; `demo-real export_zip=…`; refreshed header comments. Makefile remains source of truth for CMake/metadata.  
 3. **Streaming execute** — open/parse in the table-function body, emit ~vector-size chunks; stop buffering the full export in bind  
 4. **Streaming zip inflate** — feed zlib directly into the XML scanner (no full temp `export.xml` when avoidable); only after completeness tests are solid  
 5. **Named parameters** — `types`, `start`, `end`, `ignore_errors` on `read_apple_health`  
