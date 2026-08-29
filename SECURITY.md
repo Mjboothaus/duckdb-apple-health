@@ -21,9 +21,10 @@ Apple Health exports can contain highly sensitive personal information.
 
 If you believe you have found a security issue in this repository (for example path handling that reads unexpected files, memory safety in the C parser, or accidental data exfiltration via a dependency):
 
-1. Email **michael@databooth.com.au** with a description and reproduction steps if possible.
-2. Avoid opening a public issue with exploit details until a fix is available.
-3. We will aim to acknowledge within a few business days (best effort for a small maintainer set).
+1. Open a [GitHub issue](https://github.com/DataBooth/duckdb-apple-health/issues/new) with a clear description and reproduction steps if possible.
+2. Do **not** include real Health export data, PHI, or exploit payloads in the issue body or attachments.
+3. For sensitive details you prefer not to post publicly, say so in the issue and keep the public description high-level until maintainers respond.
+4. Acknowledgement is best effort for a small maintainer set.
 
 ## Supply chain notes
 
