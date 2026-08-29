@@ -76,8 +76,8 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 | Gate | Status | Evidence / notes |
 |---|---|---|
 | 0 Confirm machine | **Pass (with known gap)** | Tools OK; `just check-tools` + `just fixture` work after justfile fix; DuckDB still **1.5.2** (2.0-dev deferred to Gate 2) |
-| 1 Vendor template | **Pass (pending commit)** | Makefile, duckdb_capi/, src sample, extension-ci-tools submodule; EXT_NAME=apple_health |
-| 2 Unsigned load | Not started | Needs 2.0-dev CLI |
+| 1 Vendor template | **Pass** | PR #2; Makefile, duckdb_capi/, src sample, extension-ci-tools @ ef15a2a; EXT_NAME=apple_health |
+| 2 Unsigned load | **Pass on 1.5.2** | Built + loaded unsigned; path matches justfile; 2.0-dev still planned for later ABI work |
 | 3 TF spike | Not started | |
 | 4 Parser CLI | Not started | |
 | 5 Zip source | Not started | |
@@ -152,3 +152,23 @@ justfile bug: `if path_exists(x)` is invalid; must be `if path_exists(x) == "tru
 - Stopped ignoring root `Makefile` in `.gitignore`.
 - `USE_UNSTABLE_C_API` remains 0.
 - Template pins `TARGET_DUCKDB_VERSION=v1.2.0`; CI workflow references DuckDB v1.5.4 / variegata tools — note for Gate 2 / 2.0-dev story.
+
+### 2026-08-29 — Gate 2 unsigned load
+
+- `just configure` OK (venv + duckdb 1.5.5 wheel + sqllogictest).
+- `just debug` OK → `build/debug/extension/apple_health/apple_health.duckdb_extension` (also `build/debug/apple_health.duckdb_extension`).
+- Metadata: `C_STRUCT` ABI, duckdb_version **v1.2.0** (template TARGET), platform **osx_arm64**, extension_version git short hash.
+- Load:
+
+```text
+duckdb --version
+v1.5.2 (Variegata)
+
+duckdb -unsigned -c "LOAD '.../apple_health.duckdb_extension'; SELECT multiply_numbers_together(1, 2);"
+→ 2
+
+without -unsigned → IO Error: signature missing/invalid, unsigned disabled
+```
+
+- justfile `ext_debug` path already correct — no path fix commit needed.
+- Surprise relative to brief: **1.5.2 CLI loads this C-API extension**. 2.0-dev still wanted for the stable-TF / long-term ABI story, but Gate 2 is green on the machine today.
