@@ -1,18 +1,10 @@
 # name: test/sql/apple_health.test
-# description: test apple_health extension
+# description: apple_health extension smoke
 # group: [apple_health]
 
-# Before we load the extension, this will fail
-statement error
-SELECT multiply_numbers_together(1,2);
-----
-Catalog Error: Scalar Function with name multiply_numbers_together does not exist!
-
-# Require statement will ensure the extension is loaded from now on
 require apple_health
 
-# Confirm the extension works
 query I
-SELECT multiply_numbers_together(5,10)
+SELECT count(*) FROM read_apple_health('test/data/export.zip');
 ----
-50
+7

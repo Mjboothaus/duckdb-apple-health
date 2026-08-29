@@ -81,3 +81,9 @@ venv/
 
 # Note: do NOT ignore root Makefile — extension-template-c commits it.
 configure/
+
+# Notebook local artefacts (never commit real Health exports)
+*.parquet
+notebooks/.marimo/
+.python-version
+output/

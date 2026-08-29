@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixture-pytest:
+    name: Fixture pytest (macos)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build tools
+        run: |
+          brew install cmake ninja ccache just
+          # DuckDB CLI for optional checks
+          brew install duckdb || true
+
+      - name: Configure and build extension
+        run: |
+          just configure
+          just debug
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Pytest (fixture)
+        run: |
+          uv sync --group dev
+          just fixture
+          just pytest-ext
