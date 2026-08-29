@@ -1,0 +1,8 @@
+type,type_short,unit,value,value_text,start_date,end_date,creation_date,source_name,source_version
+HKQuantityTypeIdentifierHeartRate,HeartRate,count/min,72,,2026-01-15 06:30:00 +1100,2026-01-15 06:30:00 +1100,2026-01-15 06:30:12 +1100,Demo Watch,11.0
+HKQuantityTypeIdentifierStepCount,StepCount,count,1234,,2026-01-15 08:00:00 +1100,2026-01-15 20:00:00 +1100,2026-01-15 21:00:00 +1100,Demo Phone,18.0
+HKQuantityTypeIdentifierHeartRate,HeartRate,count/min,118,,2024-02-06 07:00:00 -0800,2024-02-06 07:00:10 -0800,2024-02-06 07:05:00 -0800,Demo Watch,11.0
+HKCategoryTypeIdentifierSleepAnalysis,SleepAnalysis,,,HKCategoryValueSleepAnalysisAsleepCore,2026-01-15 00:10:00 +1100,2026-01-15 01:40:00 +1100,2026-01-15 07:00:00 +1100,Demo Watch,11.0
+HKQuantityTypeIdentifierActiveEnergyBurned,ActiveEnergyBurned,kcal,42.5,,2026-01-15 07:00:00 +1100,2026-01-15 07:25:00 +1100,2026-01-15 07:30:00 +1100,Café Run Club,3.2
+HKQuantityTypeIdentifierBloodPressureSystolic,BloodPressureSystolic,mmHg,118,,2026-01-14 08:00:00 +1100,2026-01-14 08:00:00 +1100,2026-01-14 08:00:00 +1100,Demo Phone,18.0
+HKQuantityTypeIdentifierBloodPressureDiastolic,BloodPressureDiastolic,mmHg,76,,2026-01-14 08:00:00 +1100,2026-01-14 08:00:00 +1100,2026-01-14 08:00:00 +1100,Demo Phone,18.0
