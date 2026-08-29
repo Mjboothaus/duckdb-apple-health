@@ -38,12 +38,34 @@ Known v0.1 limits (honest):
 
 ## Near term — v0.1.x (correctness & ergonomics)
 
-1. **Streaming execute** — open/parse in the table-function body, emit ~vector-size chunks; stop buffering the full export in bind  
-2. **Streaming zip inflate** — feed zlib directly into the XML scanner (no full temp `export.xml` when avoidable)  
-3. **Named parameters** — `types`, `start`, `end`, `ignore_errors` on `read_apple_health`  
-4. **CLI / notebook progress** — bytes read + row counters (client-side); interrupt-friendly once parse is in execute  
-5. **Projection pushdown** — skip unused columns when the SELECT list is narrow  
-6. **Broader correctness** — optional real-export pytest (`APPLE_HEALTH_EXPORT_ZIP`); document Correlation vs `healthkit-to-sqlite` clearly in README  
+1. **Zip inflate completeness** — **done** (this cycle): require `Z_STREAM_END` + central-directory sizes for data-descriptor members; real `export.zip` matches bare `export.xml` (HRV −2 gap closed).  
+2. **justfile uplift** — one-shot bootstrap (`configure` if needed + `debug` + fixture); make `pytest-ext` build debug when missing; refresh stale “template not vendored” comments; optional `demo-real export_zip=…` for ad-hoc counts. Keep Makefile as the single source of truth for CMake/metadata.  
+3. **Streaming execute** — open/parse in the table-function body, emit ~vector-size chunks; stop buffering the full export in bind  
+4. **Streaming zip inflate** — feed zlib directly into the XML scanner (no full temp `export.xml` when avoidable); only after completeness tests are solid  
+5. **Named parameters** — `types`, `start`, `end`, `ignore_errors` on `read_apple_health`  
+6. **CLI / notebook progress** — bytes read + row counters (client-side); interrupt-friendly once parse is in execute  
+7. **Projection pushdown** — skip unused columns when the SELECT list is narrow  
+8. **Broader correctness** — optional real-export pytest (`APPLE_HEALTH_EXPORT_ZIP`); document Correlation vs `healthkit-to-sqlite` clearly in README  
+
+## Product focus — workouts & GPS (priority track)
+
+Personal / product priority after zip correctness. Real exports already carry routes as companion GPX, not inline coordinates in `export.xml`.
+
+**Observed shape (typical full export):**
+
+- `apple_health_workouts` today: summary attributes only (type, duration, distance, energy, dates, source/device) — **no GPS**
+- Nested under `<Workout>`: `WorkoutEvent`, `WorkoutStatistics`, `MetadataEntry`
+- `WorkoutRoute` + `FileReference path="/workout-routes/route_….gpx"` (often ~1 route per outdoor workout)
+- Zip members: `apple_health_export/workout-routes/*.gpx` with `<trkpt lat lon>`, `ele`, `time`, extensions (`speed`, `course`, `hAcc`, `vAcc`)
+
+**Suggested PR sequence (GPS track):**
+
+1. **Route index** — `apple_health_workout_routes(path)`: route metadata + `gpx_path` / zip member; stable join key to parent workout (start/end/source or synthetic id). Fixture with one tiny GPX.  
+2. **Track points** — `apple_health_workout_route_points(path)` (or named param on routes): stream GPX `trkpt` → `lat`, `lon`, `ele`, `time` TIMESTAMPTZ, optional speed/course/accuracy; zip multi-member open.  
+3. **Workout enrichments** — optional `apple_health_workout_events` / statistics tables; keep opt-in so summary scan stays cheap.  
+4. **Ergonomics** — join examples in QUICKSTART; `COPY` routes/points to Parquet; document privacy (precise location).
+
+**Non-goals for early GPS PRs:** map UI, live HealthKit, silent Watch/iPhone dedupe, loading every GPX when the user only asked for workout summaries.
 
 ## Medium term — v0.2 (performance product)
 
@@ -60,6 +82,13 @@ COPY (
   FROM read_apple_health('export.zip', types := ['HeartRate', 'StepCount'])
 ) TO 'activity.parquet' (FORMAT parquet);
 -- subsequent analytics hit Parquet in milliseconds
+```
+
+```sql
+-- GPS track (planned): summaries ⋈ route points
+SELECT w.activity_type_short, p.time, p.lat, p.lon
+FROM apple_health_workouts('export.zip') w
+JOIN apple_health_workout_route_points('export.zip') p USING (/* join key TBD */);
 ```
 
 ## DuckDB 2.0 extension framework
@@ -87,11 +116,12 @@ duckdb -unsigned -c "LOAD 'build/debug/extension/apple_health/apple_health.duckd
 
 ## Later / v0.3+ (opt-in)
 
-- Workout routes / GPX (large, optional table function)
 - ECG / clinical records (explicit opt-in; privacy review)
 - Deduping Watch vs iPhone double counts (analytics policy, not silent)
 - Wasm / `excluded_platforms` only if there is demand
 - Python wheel wrapping the extension (fixtures stay Python; runtime stays C)
+
+Workout routes / GPX moved up to **Product focus — workouts & GPS** (no longer “someday only”).
 
 ## Explicitly out of scope
 

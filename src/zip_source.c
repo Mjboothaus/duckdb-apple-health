@@ -212,8 +212,12 @@ static FILE *inflate_member_to_temp(FILE *zip_fp, uint32_t comp_size, uint32_t u
 		unsigned char in[8192];
 		unsigned char outbuf[16384];
 		uint32_t left = comp_size;
-		int zrc = Z_OK;
-		while (left > 0 || zrc == Z_OK) {
+		uLong total_out = 0;
+		int reached_end = 0;
+		/* Must reach Z_STREAM_END. Do not stop on Z_BUF_ERROR when the output
+		 * buffer fills — that truncated real Apple Health zips (~12 KiB short).
+		 * Data-descriptor members still supply sizes via the central directory. */
+		for (;;) {
 			if (strm.avail_in == 0 && left > 0) {
 				size_t n = left > sizeof(in) ? sizeof(in) : left;
 				if (!read_fully(zip_fp, in, n)) {
@@ -229,7 +233,8 @@ static FILE *inflate_member_to_temp(FILE *zip_fp, uint32_t comp_size, uint32_t u
 			}
 			strm.next_out = outbuf;
 			strm.avail_out = sizeof(outbuf);
-			zrc = inflate(&strm, left ? Z_NO_FLUSH : Z_FINISH);
+			int flush = (left == 0) ? Z_FINISH : Z_NO_FLUSH;
+			int zrc = inflate(&strm, flush);
 			size_t have = sizeof(outbuf) - strm.avail_out;
 			if (have && fwrite(outbuf, 1, have, out) != have) {
 				inflateEnd(&strm);
@@ -239,21 +244,43 @@ static FILE *inflate_member_to_temp(FILE *zip_fp, uint32_t comp_size, uint32_t u
 				return NULL;
 			}
 			if (zrc == Z_STREAM_END) {
+				reached_end = 1;
 				break;
 			}
-			if (zrc != Z_OK && zrc != Z_BUF_ERROR) {
-				inflateEnd(&strm);
-				fclose(out);
-				unlink(tmpl);
-				set_err(err, err_len, "inflate failed");
-				return NULL;
+			if (zrc == Z_OK) {
+				continue;
 			}
-			if (left == 0 && strm.avail_in == 0 && zrc == Z_BUF_ERROR) {
-				break;
+			if (zrc == Z_BUF_ERROR) {
+				/* No progress only if nothing written and no input left to feed. */
+				if (have == 0 && left == 0 && strm.avail_in == 0) {
+					inflateEnd(&strm);
+					fclose(out);
+					unlink(tmpl);
+					set_err(err, err_len, "inflate incomplete (buf error)");
+					return NULL;
+				}
+				continue;
 			}
+			inflateEnd(&strm);
+			fclose(out);
+			unlink(tmpl);
+			set_err(err, err_len, "inflate failed");
+			return NULL;
 		}
+		total_out = strm.total_out;
 		inflateEnd(&strm);
-		(void)uncomp_size;
+		if (!reached_end) {
+			fclose(out);
+			unlink(tmpl);
+			set_err(err, err_len, "inflate missing stream end");
+			return NULL;
+		}
+		if (uncomp_size != 0 && total_out != (uLong)uncomp_size) {
+			fclose(out);
+			unlink(tmpl);
+			set_err(err, err_len, "inflate size mismatch vs zip directory");
+			return NULL;
+		}
 	} else {
 		fclose(out);
 		unlink(tmpl);
@@ -359,7 +386,8 @@ static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
 		set_err(err, err_len, "skip local name/extra failed");
 		return NULL;
 	}
-	/* Prefer sizes from local header if non-zero (data descriptor case may still use central) */
+	/* Local sizes are often 0 when general-purpose bit 3 (data descriptor) is set.
+	 * Keep central-directory sizes in that case; only override when local is set. */
 	if (lh.comp_size) {
 		comp_size = lh.comp_size;
 	}
@@ -368,6 +396,12 @@ static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
 	}
 	if (lh.method) {
 		method = lh.method;
+	}
+	if (comp_size == 0 && uncomp_size == 0) {
+		free(member_name);
+		fclose(fp);
+		set_err(err, err_len, "zip member has zero sizes (missing central directory sizes)");
+		return NULL;
 	}
 
 	char *temp_path = NULL;
