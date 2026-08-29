@@ -33,6 +33,7 @@ set(EXTENSION_SOURCES
         src/add_numbers.c
         src/apple_health_tf.c
         src/capi_quack.c
+        src/parse_health.c
 )
 
 if (DUCKDB_WASM_EXTENSION)
@@ -48,8 +49,8 @@ set(VISIBILITY_INLINES_HIDDEN ON)
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 
-# Include own headers
-target_include_directories(${EXTENSION_NAME} PRIVATE src/include)
+# Include own headers (src/ for parse_health.h; src/include for TF headers)
+target_include_directories(${EXTENSION_NAME} PRIVATE src src/include)
 
 # Include DuckDB C API headers
 target_include_directories(${EXTENSION_NAME} PRIVATE duckdb_capi)

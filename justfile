@@ -92,7 +92,7 @@ demo-xml: fixture
     @test -f "{{ext}}" || { echo "Build first: just debug"; exit 1; }
     {{duckdb}} -unsigned -c "LOAD '{{ext}}'; SELECT count(*) AS n FROM read_apple_health('test/data/export.xml');"
 
-# Parser CLI path if the TF spike is blocked (src/parse_health as a standalone later).
-parse-cli:
-    @test -x build/debug/parse_health || { echo "No parse_health CLI yet."; exit 1; }
+# Streaming XML parser CLI (no DuckDB). Builds if missing.
+parse-cli: fixture
+    @if ! test -x build/debug/parse_health; then make parse_health_cli; fi
     build/debug/parse_health test/data/export.xml
