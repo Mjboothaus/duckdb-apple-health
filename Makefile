@@ -29,4 +29,11 @@ test_debug: test_extension_debug
 test_release: test_extension_release
 
 clean: clean_build clean_cmake
+	@rm -f build/debug/parse_health build/release/parse_health
 clean_all: clean clean_configure
+
+# Standalone streaming XML parser CLI (no DuckDB). Used for Gate 4+.
+.PHONY: parse_health_cli
+parse_health_cli:
+	@mkdir -p build/debug
+	$(CC) -std=c11 -Wall -Wextra -O2 -I src -o build/debug/parse_health src/parse_health.c src/parse_health_main.c

@@ -79,7 +79,7 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 | 1 Vendor template | **Pass** | PR #2; Makefile, duckdb_capi/, src sample, extension-ci-tools @ ef15a2a; EXT_NAME=apple_health |
 | 2 Unsigned load | **Pass on 1.5.2** | Built + loaded unsigned; path matches justfile; 2.0-dev still planned for later ABI work |
 | 3 TF spike | **Pass (3b)** | Stable C API table functions work; 3 hardcoded rows via `read_apple_health` |
-| 4 Parser CLI | Not started | |
+| 4 Parser CLI | **Pass** | 7 top-level records; sleep value_text; Café; nested Correlation skipped (2) |
 | 5 Zip source | Not started | |
 | 6 Wire TF | Not started | |
 | 7 Workouts / summaries | Not started | |
@@ -187,3 +187,17 @@ count(*) = 3, count(value) = 2
 ```
 
 - No `USE_UNSTABLE_C_API`. Next: Step 4 streaming parser (no DuckDB headers).
+
+### 2026-08-29 — Gate 4 streaming parser
+
+- Zero-dep streaming tag scanner in `src/parse_health.c` (no DuckDB, no libxml2 DOM, no expat/yxml).
+- CLI `build/debug/parse_health` via `make parse_health_cli` / `just parse-cli`.
+- Top-level `<Record>` only; Correlation children skipped (`skipped_nested_records=2`).
+- Workouts + activity summaries parsed into structs (callbacks ready for Gate 7).
+- Golden CSV match (7 rows); sleep non-numeric → empty value + value_text; `Café Run Club` intact.
+- `parse_health.c` also linked into the extension library for later TF wiring (still unused by TF).
+
+```text
+records=7 workouts=1 activity_summaries=2 skipped_nested_records=2
+diff golden == empty
+```
