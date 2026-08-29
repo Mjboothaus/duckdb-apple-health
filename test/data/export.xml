@@ -16,7 +16,12 @@
     <Record type="HKQuantityTypeIdentifierBloodPressureSystolic" unit="mmHg" value="118" sourceName="Demo Phone" sourceVersion="18.0" creationDate="2026-01-14 08:00:00 +1100" startDate="2026-01-14 08:00:00 +1100" endDate="2026-01-14 08:00:00 +1100"/>
     <Record type="HKQuantityTypeIdentifierBloodPressureDiastolic" unit="mmHg" value="76" sourceName="Demo Phone" sourceVersion="18.0" creationDate="2026-01-14 08:00:00 +1100" startDate="2026-01-14 08:00:00 +1100" endDate="2026-01-14 08:00:00 +1100"/>
   </Correlation>
-  <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="25.0" durationUnit="min" totalDistance="4.2" totalDistanceUnit="km" totalEnergyBurned="280" totalEnergyBurnedUnit="kcal" sourceName="Demo Watch" sourceVersion="11.0" device="&lt;&lt;HKDevice: 0x0, name:Demo Watch&gt;&gt;" creationDate="2026-01-15 07:26:00 +1100" startDate="2026-01-15 07:00:00 +1100" endDate="2026-01-15 07:25:00 +1100"><WorkoutEvent type="HKWorkoutEventTypePause" date="2026-01-15 07:10:00 +1100"/></Workout>
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="25.0" durationUnit="min" totalDistance="4.2" totalDistanceUnit="km" totalEnergyBurned="280" totalEnergyBurnedUnit="kcal" sourceName="Demo Watch" sourceVersion="11.0" device="&lt;&lt;HKDevice: 0x0, name:Demo Watch&gt;&gt;" creationDate="2026-01-15 07:26:00 +1100" startDate="2026-01-15 07:00:00 +1100" endDate="2026-01-15 07:25:00 +1100">
+    <WorkoutEvent type="HKWorkoutEventTypePause" date="2026-01-15 07:10:00 +1100"/>
+    <WorkoutRoute sourceName="Demo Phone" sourceVersion="18.0" device="&lt;&lt;HKDevice: 0x0, name:Demo Phone&gt;&gt;" creationDate="2026-01-15 07:26:00 +1100" startDate="2026-01-15 07:00:00 +1100" endDate="2026-01-15 07:25:00 +1100">
+      <FileReference path="/workout-routes/route_2026-01-15_7.25am.gpx"/>
+    </WorkoutRoute>
+  </Workout>
   <ActivitySummary dateComponents="2020-06-01" activeEnergyBurned="410" activeEnergyBurnedGoal="500" activeEnergyBurnedUnit="kcal" appleMoveMinutes="32" appleMoveMinutesGoal="30" appleExerciseTime="28" appleExerciseTimeGoal="30" appleStandHours="10" appleStandHoursGoal="12"/>
   <ActivitySummary dateComponents="2026-01-15" activeEnergyBurned="520" activeEnergyBurnedGoal="500" activeEnergyBurnedUnit="kcal" appleMoveTime="41" appleMoveTimeGoal="30" appleExerciseTime="35" appleExerciseTimeGoal="30" appleStandHours="11" appleStandHoursGoal="12"/>
 </HealthData>

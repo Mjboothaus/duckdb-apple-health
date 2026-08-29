@@ -60,7 +60,7 @@ Personal / product priority after zip correctness. Real exports already carry ro
 
 **Suggested PR sequence (GPS track):**
 
-1. **Route index** — `apple_health_workout_routes(path)`: route metadata + `gpx_path` / zip member; stable join key to parent workout (start/end/source or synthetic id). Fixture with one tiny GPX.  
+1. **Route index** — **done**: `apple_health_workout_routes(path)`: route metadata + `gpx_path` / zip member; stable join key to parent workout (start/end/source or synthetic id). Fixture with one tiny GPX.  
 2. **Track points** — `apple_health_workout_route_points(path)` (or named param on routes): stream GPX `trkpt` → `lat`, `lon`, `ele`, `time` TIMESTAMPTZ, optional speed/course/accuracy; zip multi-member open.  
 3. **Workout enrichments** — optional `apple_health_workout_events` / statistics tables; keep opt-in so summary scan stays cheap.  
 4. **Ergonomics** — join examples in QUICKSTART; `COPY` routes/points to Parquet; document privacy (precise location).

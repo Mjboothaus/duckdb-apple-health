@@ -90,6 +90,7 @@ int main(int argc, char **argv) {
 	    .on_record = on_record,
 	    .on_workout = on_workout,
 	    .on_activity_summary = on_summary,
+	    .on_workout_route = NULL,
 	    .userdata = stdout,
 	};
 	ah_parse_stats stats;
@@ -106,7 +107,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "parse failed (%d) for %s: %s\n", rc, path, err[0] ? err : "(unknown)");
 		return 1;
 	}
-	fprintf(stderr, "records=%zu workouts=%zu activity_summaries=%zu skipped_nested_records=%zu\n", stats.records,
-	        stats.workouts, stats.activity_summaries, stats.skipped_nested_records);
+	fprintf(stderr, "records=%zu workouts=%zu activity_summaries=%zu workout_routes=%zu skipped_nested_records=%zu\n", stats.records,
+	        stats.workouts, stats.activity_summaries, stats.workout_routes, stats.skipped_nested_records);
 	return 0;
 }

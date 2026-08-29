@@ -73,9 +73,27 @@ typedef struct {
 } ah_activity_summary;
 
 typedef struct {
+	/* Parent workout (when route is nested under <Workout>) */
+	char workout_activity_type[AH_TYPE_MAX];
+	char workout_activity_type_short[AH_TYPE_MAX];
+	char workout_start_date[64];
+	char workout_end_date[64];
+	/* Route element attrs */
+	char start_date[64];
+	char end_date[64];
+	char creation_date[64];
+	char source_name[AH_ATTR_MAX];
+	char source_version[64];
+	char device[AH_ATTR_MAX];
+	/* FileReference path, e.g. /workout-routes/route_….gpx */
+	char gpx_path[AH_ATTR_MAX];
+} ah_workout_route;
+
+typedef struct {
 	void (*on_record)(const ah_record *row, void *userdata);
 	void (*on_workout)(const ah_workout *row, void *userdata);
 	void (*on_activity_summary)(const ah_activity_summary *row, void *userdata);
+	void (*on_workout_route)(const ah_workout_route *row, void *userdata);
 	void *userdata;
 } ah_parse_callbacks;
 
@@ -83,6 +101,7 @@ typedef struct {
 	size_t records;
 	size_t workouts;
 	size_t activity_summaries;
+	size_t workout_routes;
 	size_t skipped_nested_records;
 } ah_parse_stats;
 

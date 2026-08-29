@@ -117,13 +117,17 @@ Named parameters `types` / `start` / `end` / `ignore_errors` are **planned** (fi
 
 Activity type, duration, distance, energy, dates, source/device.
 
+### `apple_health_workout_routes(path)` — **implemented**
+
+Route metadata + `gpx_path` (`FileReference`) with parent workout type/dates for joins. Does not expand GPX track points yet.
+
 ### `apple_health_activity_summaries(path)` — **implemented**
 
 Daily rings. Both `appleMoveMinutes*` (older) and `appleMoveTime*` (iOS 14+) as nullable columns.
 
 ### Not in v0.1
 
-Workout GPS routes, ECG, `ClinicalRecord`, Correlation as a table, Wasm, community `INSTALL`, Watch/iPhone dedupe.
+Workout GPX track points, ECG, `ClinicalRecord`, Correlation as a table, Wasm, community `INSTALL`, Watch/iPhone dedupe.
 
 **Semantics:** top-level `<Record>` only — nested Correlation children are skipped (see [DESIGN.md](DESIGN.md) and tests).
 

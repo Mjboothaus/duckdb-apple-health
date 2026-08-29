@@ -6,6 +6,10 @@ Versioning: early **0.x** beta tags; breaking changes allowed until 1.0.
 
 ## [Unreleased]
 
+### Added
+
+- `apple_health_workout_routes(path)` — WorkoutRoute + FileReference `gpx_path` with parent workout type/dates for joins
+
 ### Fixed
 
 - Zip DEFLATE inflate no longer stops early on `Z_BUF_ERROR` when the output buffer fills; require `Z_STREAM_END` and honour central-directory sizes for data-descriptor members. Real `export.zip` record counts now match bare `export.xml` (closes the HRV SDNN −2 gap).
@@ -16,7 +20,7 @@ Versioning: early **0.x** beta tags; breaking changes allowed until 1.0.
 
 ### Planned
 
-- Workout routes / GPX table functions (product focus — see ROADMAP)
+- `apple_health_workout_route_points` GPX trkpt stream (see ROADMAP)
 - Streaming table-function execute (bounded memory)
 - Named `types` / `start` / `end` parameters
 - DuckDB 2.0 community packaging when C-API CI is ready

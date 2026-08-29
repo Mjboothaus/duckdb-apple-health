@@ -51,6 +51,7 @@ find build -name '*.duckdb_extension'
 FROM read_apple_health('~/Downloads/export.zip');
 
 FROM apple_health_workouts('export.zip');
+FROM apple_health_workout_routes('export.zip');
 FROM apple_health_activity_summaries('export.zip');
 ```
 
@@ -60,6 +61,7 @@ Synthetic fixture (no PHI):
 just fixture
 just demo
 just demo-workouts
+just demo-routes
 just demo-summaries
 ```
 
@@ -122,7 +124,7 @@ The extension only reads a path you pass in. No network, no telemetry. Keep real
 
 ## Not in this beta
 
-Community `INSTALL`, Wasm, GPS routes, ECG, clinical records, bind-time progress bar, named scan filters.
+Community `INSTALL`, Wasm, GPX track points, ECG, clinical records, bind-time progress bar, named scan filters.
 
 ## If something fails
 
