@@ -6,8 +6,14 @@ Versioning: early **0.x** beta tags; breaking changes allowed until 1.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- Zip DEFLATE inflate no longer stops early on `Z_BUF_ERROR` when the output buffer fills; require `Z_STREAM_END` and honour central-directory sizes for data-descriptor members. Real `export.zip` record counts now match bare `export.xml` (closes the HRV SDNN −2 gap).
+
 ### Planned
 
+- justfile uplift (bootstrap / auto-build before pytest; see ROADMAP)
+- Workout routes / GPX table functions (product focus — see ROADMAP)
 - Streaming table-function execute (bounded memory)
 - Named `types` / `start` / `end` parameters
 - DuckDB 2.0 community packaging when C-API CI is ready
