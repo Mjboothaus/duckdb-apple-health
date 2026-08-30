@@ -7,13 +7,15 @@
 #     "folium>=0.20.0",
 # ]
 # ///
-"""Map walks/hikes from the local DuckDB file (no zip scan).
+"""Walks/hikes map UI.
 
-Build the DB first:
-  just build-db export_zip=/path/to/export.zip
+Data access and map construction live in ``python/apple_health_data/``.
+This notebook only wires marimo controls.
 
-Then:
-  just map-walks
+```bash
+just build-db export_zip=/path/to/export.zip
+just map-walks
+```
 """
 
 import marimo
@@ -24,24 +26,25 @@ app = marimo.App(width="full")
 
 @app.cell
 def _():
-    import math
+    import sys
     from pathlib import Path
 
-    import duckdb
-    import folium
     import marimo as mo
-    import pandas as pd
 
-    return Path, duckdb, folium, math, mo, pd
+    _repo = Path(__file__).resolve().parents[1]
+    _python = str(_repo / "python")
+    if _python not in sys.path:
+        sys.path.insert(0, _python)
+
+    from apple_health_data import DEFAULT_DB_PATH, HealthDataStore, build_route_map
+
+    return DEFAULT_DB_PATH, HealthDataStore, Path, build_route_map, mo
 
 
 @app.cell
-def _(Path, mo):
-    repo_root = Path(__file__).resolve().parents[1]
-    default_db = str(repo_root / "output" / "apple_health.duckdb")
-
+def _(DEFAULT_DB_PATH, mo):
     db_path = mo.ui.text(
-        value=default_db,
+        value=str(DEFAULT_DB_PATH),
         label="Local DuckDB file (from just build-db)",
         full_width=True,
     )
@@ -54,21 +57,18 @@ def _(Path, mo):
     max_points = mo.ui.slider(
         500, 20_000, value=6_000, step=500, label="Max points drawn (total)", show_value=True
     )
-
     header = mo.vstack(
         [
             mo.md(
                 """
 # Walks & hikes map
 
-Reads **`output/apple_health.duckdb`** only (tables `routes` + `route_points_map`).
+UI only — data via **`HealthDataStore`** (`python/apple_health_data/`).
 
 ```bash
-just build-db export_zip=/path/to/export.zip   # once
-just map-walks                                 # map
+just build-db export_zip=/path/to/export.zip
+just map-walks
 ```
-
-No export.zip scan in this notebook.
 """
             ),
             db_path,
@@ -87,17 +87,15 @@ def _(header):
 
 
 @app.cell
-def _(Path, db_path, duckdb, mo):
+def _(HealthDataStore, Path, db_path, mo):
     path = Path(db_path.value).expanduser()
-    con = None
+    store = None
     if not path.is_file():
         db_panel = mo.md(
             f"""
 ### Database not found
 
 `{path}`
-
-Build it first:
 
 ```bash
 just build-db export_zip=/path/to/your/export.zip
@@ -106,28 +104,21 @@ just build-db export_zip=/path/to/your/export.zip
         )
     else:
         try:
-            con = duckdb.connect(str(path), read_only=True)
-            man = con.execute("SELECT * FROM ingest_manifest").df()
-            counts = con.execute(
-                """
-                SELECT 'workouts' AS t, count(*)::BIGINT AS n FROM workouts
-                UNION ALL SELECT 'routes', count(*) FROM routes
-                UNION ALL SELECT 'route_points_map', count(*) FROM route_points_map
-                """
-            ).df()
+            store = HealthDataStore(path)
+            store.connect()
             db_panel = mo.vstack(
                 [
                     mo.md(f"### Database\n\n`{path}`"),
-                    mo.ui.table(man, selection=None),
-                    mo.ui.table(counts, selection=None),
+                    mo.ui.table(store.manifest(), selection=None),
+                    mo.ui.table(store.summary(), selection=None),
                 ]
             )
         except Exception as e:
-            if con is not None:
-                con.close()
-            con = None
-            db_panel = mo.md(f"**Could not read DB tables:** `{e}`\n\nRe-run `just build-db`.")
-    return con, db_panel
+            if store is not None:
+                store.close()
+            store = None
+            db_panel = mo.md(f"**Could not open DB:** `{e}`")
+    return db_panel, store
 
 
 @app.cell
@@ -137,43 +128,15 @@ def _(db_panel):
 
 
 @app.cell
-def _(activity_filter, con, max_list, mo):
+def _(activity_filter, max_list, mo, store):
     catalogue = None
     route_picker = mo.ui.multiselect(options=[], value=[], label="Select walk(s) / hike(s)")
 
-    if con is None:
+    if store is None:
         routes_panel = mo.md("_Open a valid database above._")
     else:
         types = list(activity_filter.value) or ["Walking", "Hiking"]
-        in_list = ", ".join("'" + t.replace("'", "''") + "'" for t in types)
-        limit_n = int(max_list.value)
-        catalogue = con.execute(
-            f"""
-            SELECT
-              r.activity_type_short AS activity,
-              r.workout_start_date AS start_date,
-              r.gpx_path,
-              round(date_diff('second', r.workout_start_date, r.workout_end_date) / 60.0, 1)
-                AS duration_min,
-              count(p.point_index)::BIGINT AS n_points,
-              strftime(r.workout_start_date, '%Y-%m-%d %H:%M')
-                || ' · ' || r.activity_type_short
-                || ' · ' || coalesce(
-                     round(date_diff('second', r.workout_start_date, r.workout_end_date) / 60.0, 0)::INT,
-                     0
-                   )::VARCHAR || ' min'
-                || ' · ' || count(p.point_index)::VARCHAR || ' pts'
-                AS label
-            FROM routes r
-            JOIN route_points_map p USING (gpx_path)
-            WHERE r.activity_type_short IN ({in_list})
-            GROUP BY 1, 2, 3, r.workout_end_date
-            HAVING count(p.point_index) >= 2
-            ORDER BY r.workout_start_date DESC NULLS LAST
-            LIMIT {limit_n}
-            """
-        ).df()
-
+        catalogue = store.list_routes(activities=types, limit=int(max_list.value))
         if catalogue.empty:
             routes_panel = mo.md(f"No mapped routes for **{', '.join(types)}**.")
         else:
@@ -204,94 +167,27 @@ def _(routes_panel):
 
 
 @app.cell
-def _(catalogue, con, folium, math, max_points, mo, pd, route_picker):
+def _(build_route_map, catalogue, max_points, mo, route_picker, store):
     map_panel = mo.md("### Map\n\nNothing to draw yet.")
 
-    if con is not None and catalogue is not None and not catalogue.empty:
+    if store is not None and catalogue is not None and not catalogue.empty:
         selected = list(route_picker.value)
         if not selected:
             map_panel = mo.md("### Map\n\nSelect one or more routes.")
         else:
-            chosen = catalogue[catalogue["label"].isin(selected)]
-            paths = chosen["gpx_path"].dropna().unique().tolist()
-            if not paths:
-                map_panel = mo.md("### Map\n\nNo `gpx_path` on selection.")
+            chosen, pts = store.points_for_labels(catalogue, selected)
+            fmap, _drawn, status = build_route_map(
+                chosen, pts, max_total_points=int(max_points.value)
+            )
+            if fmap is None:
+                map_panel = mo.md(f"### Map\n\n{status}")
             else:
-                in_gpx = ", ".join("'" + g.replace("'", "''") + "'" for g in paths)
-                pts = con.execute(
-                    f"""
-                    SELECT gpx_path, point_index, lat, lon, ele, point_time,
-                           activity_type_short AS activity
-                    FROM route_points_map
-                    WHERE gpx_path IN ({in_gpx})
-                    ORDER BY gpx_path, point_index
-                    """
-                ).df()
-
-                budget = int(max_points.value)
-                frames = []
-                n_paths = max(len(paths), 1)
-                per = max(budget // n_paths, 50)
-                for gpx, grp in pts.groupby("gpx_path", sort=False):
-                    g = grp.sort_values("point_index")
-                    if len(g) > per:
-                        step = max(1, math.ceil(len(g) / per))
-                        g = pd.concat([g.iloc[::step], g.iloc[[-1]]]).drop_duplicates("point_index")
-                    frames.append(g)
-                draw = pd.concat(frames, ignore_index=True) if frames else pts.iloc[0:0]
-
-                if draw.empty or len(draw) < 2:
-                    map_panel = mo.md("### Map\n\nNo points for selection.")
-                else:
-                    colours = {
-                        "Walking": "#2563eb",
-                        "Hiking": "#16a34a",
-                        "Running": "#dc2626",
-                        "Cycling": "#9333ea",
-                    }
-                    m = folium.Map(
-                        location=[float(draw["lat"].mean()), float(draw["lon"].mean())],
-                        zoom_start=12,
-                        tiles="OpenStreetMap",
-                    )
-                    folium.TileLayer("CartoDB positron", name="Light").add_to(m)
-                    bounds = []
-                    for gpx, grp in draw.groupby("gpx_path", sort=False):
-                        g = grp.sort_values("point_index")
-                        act = str(g["activity"].iloc[0])
-                        colour = colours.get(act, "#334155")
-                        meta = chosen[chosen["gpx_path"] == gpx].iloc[0]
-                        label = f"{meta['activity']} · {meta['start_date']} · {meta['duration_min']} min"
-                        coords = list(zip(g["lat"].tolist(), g["lon"].tolist()))
-                        if len(coords) < 2:
-                            continue
-                        folium.PolyLine(
-                            coords, color=colour, weight=4, opacity=0.85, tooltip=label
-                        ).add_to(m)
-                        folium.CircleMarker(
-                            coords[0], radius=5, color=colour, fill=True, tooltip="Start"
-                        ).add_to(m)
-                        folium.CircleMarker(
-                            coords[-1],
-                            radius=5,
-                            color=colour,
-                            fill=True,
-                            fill_opacity=0.4,
-                            tooltip="End",
-                        ).add_to(m)
-                        bounds.extend(coords)
-                    if bounds:
-                        m.fit_bounds(bounds, padding=(24, 24))
-                    folium.LayerControl(collapsed=True).add_to(m)
-                    map_panel = mo.vstack(
-                        [
-                            mo.md(
-                                f"### Map\n\n**{len(paths)}** route(s), "
-                                f"**{len(pts):,}** map-layer points / **{len(draw):,}** drawn."
-                            ),
-                            mo.Html(m._repr_html_()),
-                        ]
-                    )
+                map_panel = mo.vstack(
+                    [
+                        mo.md(f"### Map\n\n{status}"),
+                        mo.Html(fmap._repr_html_()),
+                    ]
+                )
     return (map_panel,)
 
 
@@ -310,11 +206,12 @@ def _(mo):
 
 ```bash
 just build-db export_zip=/path/to/export.zip
+just list-walks 10
 just map-walks
-duckdb output/apple_health.duckdb
 ```
 
-See `docs/ERD.md` for the data model.
+Helper package: `python/apple_health_data/` (`HealthDataStore`, `build_route_map`).
+Model: `docs/ERD.md`.
 """
     )
     return

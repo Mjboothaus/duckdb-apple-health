@@ -197,6 +197,18 @@ Apple still gives **full** zips. Updating over time means **merge into this data
 
 ---
 
+## Python helper
+
+Reusable (non-notebook) API:
+
+```text
+python/apple_health_data/
+  store.py   # HealthDataStore — open DB, list_routes, route_points, build_from_export
+  maps.py    # build_route_map, downsample_points (Folium, no marimo)
+```
+
+`notebooks/map_walks.py` is UI-only. `scripts/build_health_db.py` calls `HealthDataStore.build_from_export`.
+
 ## Privacy
 
 - Real zips and `output/apple_health.duckdb` stay **off git**.

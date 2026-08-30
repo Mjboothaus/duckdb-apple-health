@@ -138,7 +138,7 @@ list-walks limit="30":
 map-walks:
     @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
     # Use the project venv (pyproject has marimo/duckdb/pandas/folium). Avoid empty PEP723-only sandbox.
-    uv run --project . marimo edit notebooks/map_walks.py
+    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . marimo edit notebooks/map_walks.py
 
 
 demo-route-points: fixture ensure-ext
@@ -154,7 +154,7 @@ demo-real export_zip: ensure-ext
 
 # Extension correctness tests (fixture). Builds debug extension if missing.
 pytest-ext: ensure-ext
-    uv run pytest -q
+    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run pytest -q
 
 # Optional real-export smoke (path must stay outside the repo).
 pytest-ext-real export_zip: ensure-ext
