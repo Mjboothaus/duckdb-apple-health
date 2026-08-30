@@ -71,6 +71,8 @@ def _(Path, mo):
     Interactive scan of an Apple Health export through the local **`apple_health`**
     extension (unsigned C-API build).
 
+    For **walk / hike GPS maps**, use the separate notebook `notebooks/map_walks.py` (`just map-walks`).
+
     **Privacy:** keep real `export.zip` files outside git. Prefer aggregates and
     Parquet under `output/` (gitignored).
     """

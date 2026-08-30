@@ -119,6 +119,11 @@ demo-workouts: fixture ensure-ext
 demo-routes: fixture ensure-ext
     {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT workout_activity_type_short, gpx_path, source_name FROM apple_health_workout_routes('test/data/export.zip');"
 
+
+# Walks/hikes GPS map notebook (separate from explore_export).
+map-walks: ensure-ext
+    uv run marimo edit notebooks/map_walks.py
+
 demo-route-points: fixture ensure-ext
     {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT point_index, lat, lon, ele, time FROM apple_health_workout_route_points('test/data/export.zip') ORDER BY point_index;"
 

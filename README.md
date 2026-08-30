@@ -151,6 +151,9 @@ just pytest-ext-real export_zip=/path/to/export.zip
 ```bash
 uv sync
 uv run marimo edit notebooks/explore_export.py
+# walks / hikes map (GPS):
+uv run marimo edit notebooks/map_walks.py
+# or: just map-walks
 ```
 
 ## Privacy
