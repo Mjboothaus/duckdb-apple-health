@@ -80,6 +80,6 @@ Apache-2.0 — [DataBooth](https://www.databooth.com.au)
 ### Links
 
 - Repository: https://github.com/DataBooth/duckdb-apple-health  
-- Build diary: [BLOG_POST.md](BLOG_POST.md)  
+- Build diary: [archive/BLOG_POST.md](archive/BLOG_POST.md)  
 - Roadmap (incl. DuckDB 2.0 community install): [ROADMAP.md](ROADMAP.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)  

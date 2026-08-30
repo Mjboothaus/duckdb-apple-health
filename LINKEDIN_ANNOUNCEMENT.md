@@ -37,7 +37,7 @@ We’re targeting the **DuckDB 2.0** stable C-API extension path for community `
 
 Repo: https://github.com/DataBooth/duckdb-apple-health
 
-Write‑up: `BLOG_POST.md` · Roadmap (DuckDB 2.0): `ROADMAP.md` · Release notes: `RELEASE_NOTES.md`
+Write‑up: `archive/BLOG_POST.md` · Roadmap (DuckDB 2.0): `ROADMAP.md` · Release notes: `RELEASE_NOTES.md`
 
 #DuckDB #AppleHealth #HealthKit #OpenSource #DataEngineering #Analytics #Privacy
 
@@ -59,4 +59,4 @@ https://github.com/DataBooth/duckdb-apple-health
 
 ## Comment you can add under the post
 
-Deep‑dive: `BLOG_POST.md`. Roadmap (performance + DuckDB 2.0 community install): `ROADMAP.md`. Release notes: `RELEASE_NOTES.md`. Marimo notebook: `notebooks/explore_export.py` (timing + Parquet).
+Deep‑dive: `archive/BLOG_POST.md`. Roadmap (performance + DuckDB 2.0 community install): `ROADMAP.md`. Release notes: `RELEASE_NOTES.md`. Marimo notebook: `notebooks/explore_export.py` (timing + Parquet).
