@@ -106,6 +106,7 @@ just pytest-ext
 ```bash
 uv sync
 uv run marimo edit notebooks/explore_export.py
+uv run marimo edit notebooks/map_walks.py   # walks / hikes GPS map
 ```
 
 ## What you will see
