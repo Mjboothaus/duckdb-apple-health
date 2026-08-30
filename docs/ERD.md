@@ -2,7 +2,7 @@
 
 How an Apple Health **export.zip** becomes tables you can query and map.
 
-See also: [DESIGN.md](../DESIGN.md), [ROADMAP.md](../ROADMAP.md).
+See also: [DESIGN.md](DESIGN.md), [ROADMAP.md](ROADMAP.md).
 
 Last updated: 2026-08-30.
 
@@ -193,7 +193,7 @@ ORDER BY point_index;
 
 ## Incremental exports (later)
 
-Apple still gives **full** zips. Updating over time means **merge into this database** (append new `gpx_path`s, replace points if a GPX changed), not “diff zip format”. Options are spelled out in [ROADMAP.md](../ROADMAP.md) (*Progressive exports & local database*).
+Apple still gives **full** zips. Updating over time means **merge into this database** (append new `gpx_path`s, replace points if a GPX changed), not “diff zip format”. Options are spelled out in [ROADMAP.md](ROADMAP.md) (*Progressive exports & local database*).
 
 ---
 

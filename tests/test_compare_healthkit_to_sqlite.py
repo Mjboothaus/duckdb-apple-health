@@ -6,7 +6,7 @@ healthkit-to-sqlite's pull-parser yields **every** ``</Record>`` end event, incl
 ``Record`` elements nested under ``Correlation``.
 
 Our extension intentionally emits **top-level** ``Record`` tags only (see
-DESIGN.md): Correlation children are skipped because the
+docs/DESIGN.md): Correlation children are skipped because the
 same BP samples also appear as top-level Records in real exports and in our fixture.
 
 On the synthetic fixture that means:

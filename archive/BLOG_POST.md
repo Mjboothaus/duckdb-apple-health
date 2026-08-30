@@ -145,7 +145,7 @@ Two notebooks stay separate on purpose:
 | `explore_export.py` | Records, rings, type charts, metric Parquet |
 | `map_walks.py` | Select walks/hikes and draw GPS from the **local DB** |
 
-Data model diagrams: [`docs/ERD.md`](../docs/ERD.md). Progressive multi-export options (full rebuild vs append-by-`gpx_path`): [`ROADMAP.md`](../ROADMAP.md).
+Data model diagrams: [`docs/ERD.md`](../docs/ERD.md). Progressive multi-export options (full rebuild vs append-by-`gpx_path`): [`docs/ROADMAP.md`](../docs/ROADMAP.md).
 
 On one personal export, walks/hikes alone were on the order of **~1.3k workouts**, **~1.3k routes**, and **~6M** raw track points — hence a downsampled `route_points_map` layer for plotting.
 
@@ -153,8 +153,8 @@ On one personal export, walks/hikes alone were on the order of **~1.3k workouts*
 
 - Repo: [DataBooth/duckdb-apple-health](https://github.com/DataBooth/duckdb-apple-health)
 - C‑API template: [duckdb/extension-template-c](https://github.com/duckdb/extension-template-c)
-- Implementation gates: `DESIGN.md`
+- Implementation gates: `docs/DESIGN.md`
 - Data model: `docs/ERD.md`
-- Roadmap (incl. multi-export DB options): `ROADMAP.md`
+- Roadmap (incl. multi-export DB options): `docs/ROADMAP.md`
 
 Built gate‑by‑gate on a MacBook (Apple Silicon) in one focused day — mostly because the brief refused to let us skip evidence.

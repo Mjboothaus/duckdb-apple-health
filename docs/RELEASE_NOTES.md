@@ -46,7 +46,7 @@ uv run marimo edit notebooks/explore_export.py
 - **pytest** suite: smoke/golden + comparison to [`healthkit-to-sqlite`](https://github.com/dogsheep/healthkit-to-sqlite)  
 - **Semantic note:** we emit **top-level** `<Record>` only; `healthkit-to-sqlite` also counts `Record` children of `<Correlation>`. Tests document the +2 nested BP rows on the fixture.  
 - Manual real-export smoke (offline): multi-million-row zip, workouts and activity summaries load; keep personal zips outside the repo  
-- **Post-beta zip fix (unreleased):** complete DEFLATE inflate for data-descriptor zips so `.zip` and bare `export.xml` agree on record counts (see [CHANGELOG.md](CHANGELOG.md) / [ROADMAP.md](ROADMAP.md)).  
+- **Post-beta zip fix (unreleased):** complete DEFLATE inflate for data-descriptor zips so `.zip` and bare `export.xml` agree on record counts (see [CHANGELOG.md](../CHANGELOG.md) / [ROADMAP.md](ROADMAP.md)).  
 
 ```bash
 just pytest-ext
@@ -80,6 +80,6 @@ Apache-2.0 — [DataBooth](https://www.databooth.com.au)
 ### Links
 
 - Repository: https://github.com/DataBooth/duckdb-apple-health  
-- Build diary: [archive/BLOG_POST.md](archive/BLOG_POST.md)  
+- Build diary: [archive/BLOG_POST.md](../archive/BLOG_POST.md)  
 - Roadmap (incl. DuckDB 2.0 community install): [ROADMAP.md](ROADMAP.md)
-- Changelog: [CHANGELOG.md](CHANGELOG.md)  
+- Changelog: [CHANGELOG.md](../CHANGELOG.md)  

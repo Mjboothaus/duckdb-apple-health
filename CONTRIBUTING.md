@@ -4,8 +4,8 @@ Thanks for interest in `duckdb-apple-health`. This is a **v0.1.0-beta** C extens
 
 ## Before you start
 
-1. Read [DESIGN.md](DESIGN.md) (locked decisions and hard rules).
-2. Skim [ROADMAP.md](ROADMAP.md) so work is not duplicated.
+1. Read [docs/DESIGN.md](docs/DESIGN.md) (locked decisions and hard rules).
+2. Skim [ROADMAP.md](docs/ROADMAP.md) so work is not duplicated.
 3. Never commit a real Apple Health export or other PHI.
 
 ## Dev setup (macOS)

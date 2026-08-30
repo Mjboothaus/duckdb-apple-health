@@ -2,9 +2,9 @@
 
 Single source of truth for **what** `duckdb-apple-health` is, **how** it is built, and **what must not change** without an explicit decision.
 
-- Product overview & install: [README.md](README.md), [QUICKSTART.md](QUICKSTART.md)
+- Product overview & install: [README.md](../README.md), [QUICKSTART.md](QUICKSTART.md)
 - Forward plan (v0.2+, DuckDB 2.0 packaging): [ROADMAP.md](ROADMAP.md)
-- Data model / ERD (export → scanner → local DuckDB): [docs/ERD.md](docs/ERD.md)
+- Data model / ERD (export → scanner → local DuckDB): [docs/ERD.md](ERD.md)
 - Shipped versions: [RELEASE_NOTES.md](RELEASE_NOTES.md)
 
 Decisions in this file override older chat notes. Last updated: 2026-08-29.
@@ -100,8 +100,9 @@ path
 ### Layout (current)
 
 ```text
-README.md  QUICKSTART.md  DESIGN.md  ROADMAP.md  RELEASE_NOTES.md
-LICENSE  justfile  Makefile  CMakeLists.txt
+README.md  CHANGELOG.md  CONTRIBUTING.md  SECURITY.md  LICENSE
+docs/          # DESIGN, ERD, ROADMAP, QUICKSTART, RELEASE_NOTES, …
+justfile  Makefile  CMakeLists.txt
 src/
   parse_health.{c,h}  zip_source.{c,h}  apple_health_tf.c
   parse_health_main.c   # CLI

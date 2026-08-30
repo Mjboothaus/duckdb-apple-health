@@ -7,4 +7,4 @@ Historical / non-product docs kept for reference, not part of the active develop
 | `BLOG_POST.md` | Engineering diary for the v0.1.0-beta build |
 | `BLOG_PROGRESS.md` | Gate-by-gate progress log during implementation |
 
-Prefer [DESIGN.md](../DESIGN.md), [ROADMAP.md](../ROADMAP.md), and [RELEASE_NOTES.md](../RELEASE_NOTES.md) for current guidance.
+Prefer [docs/DESIGN.md](../docs/DESIGN.md), [docs/ROADMAP.md](../docs/ROADMAP.md), and [RELEASE_NOTES.md](../docs/RELEASE_NOTES.md) for current guidance.
