@@ -137,7 +137,8 @@ list-walks limit="30":
 # Map walks/hikes from the local DB (no zip scan).
 map-walks:
     @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
-    uv run marimo edit notebooks/map_walks.py
+    # Use the project venv (pyproject has marimo/duckdb/pandas/folium). Avoid empty PEP723-only sandbox.
+    uv run --project . marimo edit notebooks/map_walks.py
 
 
 demo-route-points: fixture ensure-ext
