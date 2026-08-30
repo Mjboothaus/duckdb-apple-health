@@ -52,6 +52,7 @@ FROM read_apple_health('~/Downloads/export.zip');
 
 FROM apple_health_workouts('export.zip');
 FROM apple_health_workout_routes('export.zip');
+FROM apple_health_workout_route_points('export.zip');
 FROM apple_health_activity_summaries('export.zip');
 ```
 
@@ -62,6 +63,7 @@ just fixture
 just demo
 just demo-workouts
 just demo-routes
+just demo-route-points
 just demo-summaries
 ```
 
@@ -124,7 +126,7 @@ The extension only reads a path you pass in. No network, no telemetry. Keep real
 
 ## Not in this beta
 
-Community `INSTALL`, Wasm, GPX track points, ECG, clinical records, bind-time progress bar, named scan filters.
+Community `INSTALL`, Wasm, ECG, clinical records, bind-time progress bar, named scan filters.
 
 ## If something fails
 

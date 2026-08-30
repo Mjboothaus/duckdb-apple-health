@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from tests.helpers import duck_records, duck_summaries, duck_workout_routes, duck_workouts, sql_path
+from tests.helpers import duck_records, duck_summaries, duck_route_points, duck_workout_routes, duck_workouts, sql_path
 
 
 def test_extension_loads(con, fixture_zip):
@@ -132,3 +132,13 @@ def test_fixture_workout_routes(con, fixture_zip):
     assert r.iloc[0]["workout_activity_type_short"] == "Running"
     assert r.iloc[0]["gpx_path"] == "/workout-routes/route_2026-01-15_7.25am.gpx"
     assert r.iloc[0]["source_name"] == "Demo Phone"
+
+
+def test_fixture_route_points(con, fixture_zip):
+    p = duck_route_points(con, fixture_zip)
+    assert len(p) == 3
+    assert p.iloc[0]["gpx_path"] == "/workout-routes/route_2026-01-15_7.25am.gpx"
+    assert float(p.iloc[0]["lat"]) == pytest.approx(-33.8688)
+    assert float(p.iloc[0]["lon"]) == pytest.approx(151.2093)
+    assert float(p.iloc[0]["ele"]) == pytest.approx(12.0)
+    assert list(p["point_index"].astype(int)) == [0, 1, 2]

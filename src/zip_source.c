@@ -298,7 +298,29 @@ static FILE *inflate_member_to_temp(FILE *zip_fp, uint32_t comp_size, uint32_t u
 	return out;
 }
 
-static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
+
+static int member_matches_logical(const char *name, size_t name_len, const char *logical) {
+	/* logical like "/workout-routes/foo.gpx" or "workout-routes/foo.gpx" */
+	const char *log = logical;
+	if (log[0] == '/') {
+		log++;
+	}
+	size_t llen = strlen(log);
+	if (llen == 0 || name_len < llen) {
+		return 0;
+	}
+	if (name_len == llen && strncmp(name, log, llen) == 0) {
+		return 1;
+	}
+	/* suffix match: .../workout-routes/foo.gpx */
+	if (name_len > llen && name[name_len - llen - 1] == '/' && strncmp(name + name_len - llen, log, llen) == 0) {
+		return 1;
+	}
+	return 0;
+}
+
+static ah_xml_source *open_zip_matching(const char *path, int (*match)(const char *, size_t, const char *),
+                                        const char *match_arg, char *err, size_t err_len) {
 	FILE *fp = fopen(path, "rb");
 	if (!fp) {
 		set_err(err, err_len, "cannot open zip");
@@ -326,7 +348,7 @@ static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
 		zip_central_header ch;
 		if (!read_fully(fp, &ch, sizeof(ch))) {
 			fclose(fp);
-			set_err(err, err_len, "truncated central header failed");
+			set_err(err, err_len, "read central header failed");
 			return NULL;
 		}
 		if (ch.signature != 0x02014b50u) {
@@ -348,14 +370,13 @@ static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
 			set_err(err, err_len, "skip extra failed");
 			return NULL;
 		}
-		if (!found && name_is_export_xml(name, ch.name_len)) {
+		if (!found && match(name, ch.name_len, match_arg)) {
 			found = 1;
 			member_name = name;
 			local_off = ch.local_header_offset;
 			method = ch.method;
 			comp_size = ch.comp_size;
 			uncomp_size = ch.uncomp_size;
-			/* keep scanning? first match is fine; free others */
 		} else {
 			free(name);
 		}
@@ -363,7 +384,7 @@ static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
 
 	if (!found) {
 		fclose(fp);
-		set_err(err, err_len, "no export.xml member in zip");
+		set_err(err, err_len, "zip member not found");
 		return NULL;
 	}
 
@@ -386,8 +407,6 @@ static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
 		set_err(err, err_len, "skip local name/extra failed");
 		return NULL;
 	}
-	/* Local sizes are often 0 when general-purpose bit 3 (data descriptor) is set.
-	 * Keep central-directory sizes in that case; only override when local is set. */
 	if (lh.comp_size) {
 		comp_size = lh.comp_size;
 	}
@@ -428,6 +447,19 @@ static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
 	src->filename = member_name;
 	src->temp_path = temp_path;
 	return src;
+}
+
+static int match_export_xml(const char *name, size_t len, const char *arg) {
+	(void)arg;
+	return name_is_export_xml(name, len);
+}
+
+static int match_logical_path(const char *name, size_t len, const char *arg) {
+	return member_matches_logical(name, len, arg);
+}
+
+static ah_xml_source *open_zip(const char *path, char *err, size_t err_len) {
+	return open_zip_matching(path, match_export_xml, NULL, err, err_len);
 }
 
 static ah_xml_source *open_file(const char *path, char *err, size_t err_len) {
@@ -486,6 +518,57 @@ void ah_xml_source_close(ah_xml_source *src) {
 	}
 	free(src->filename);
 	free(src);
+}
+
+
+ah_xml_source *ah_xml_source_open_member(const char *export_path, const char *logical_path, char *err,
+                                         size_t err_len) {
+	if (!export_path || !*export_path || !logical_path || !*logical_path) {
+		set_err(err, err_len, "empty path");
+		return NULL;
+	}
+	if (ends_with_ci(export_path, ".zip")) {
+		return open_zip_matching(export_path, match_logical_path, logical_path, err, err_len);
+	}
+
+	/* Directory or export.xml: try several filesystem layouts. */
+	char candidates[4][4096];
+	int nc = 0;
+	const char *log = logical_path[0] == '/' ? logical_path + 1 : logical_path;
+
+	if (path_is_dir(export_path)) {
+		snprintf(candidates[nc++], 4096, "%s/%s", export_path, log);
+		snprintf(candidates[nc++], 4096, "%s/apple_health_export/%s", export_path, log);
+		snprintf(candidates[nc++], 4096, "%s/workout-routes/%s", export_path,
+		         (strrchr(log, '/') ? strrchr(log, '/') + 1 : log));
+	} else {
+		/* parent directory of file */
+		char parent[4096];
+		snprintf(parent, sizeof(parent), "%s", export_path);
+		char *slash = strrchr(parent, '/');
+		if (slash) {
+			*slash = '\0';
+		} else {
+			snprintf(parent, sizeof(parent), ".");
+		}
+		snprintf(candidates[nc++], 4096, "%s/%s", parent, log);
+		snprintf(candidates[nc++], 4096, "%s/apple_health_export/%s", parent, log);
+		snprintf(candidates[nc++], 4096, "%s/workout-routes/%s", parent,
+		         (strrchr(log, '/') ? strrchr(log, '/') + 1 : log));
+		/* if export is .../apple_health_export/export.xml, parent already that folder */
+		snprintf(candidates[nc++], 4096, "%s/%s", parent, (strrchr(log, '/') ? strrchr(log, '/') + 1 : log));
+	}
+
+	for (int i = 0; i < nc; i++) {
+		FILE *fp = fopen(candidates[i], "rb");
+		if (!fp) {
+			continue;
+		}
+		fclose(fp);
+		return open_file(candidates[i], err, err_len);
+	}
+	set_err(err, err_len, "gpx member/file not found");
+	return NULL;
 }
 
 int ah_parse_health_path(const char *path, const ah_parse_callbacks *cb, ah_parse_stats *stats_out, char *err,

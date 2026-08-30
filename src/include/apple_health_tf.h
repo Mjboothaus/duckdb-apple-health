@@ -6,3 +6,4 @@ void RegisterReadAppleHealthFunction(duckdb_connection connection);
 void RegisterAppleHealthWorkoutsFunction(duckdb_connection connection);
 void RegisterAppleHealthActivitySummariesFunction(duckdb_connection connection);
 void RegisterAppleHealthWorkoutRoutesFunction(duckdb_connection connection);
+void RegisterAppleHealthWorkoutRoutePointsFunction(duckdb_connection connection);

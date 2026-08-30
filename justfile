@@ -119,6 +119,9 @@ demo-workouts: fixture ensure-ext
 demo-routes: fixture ensure-ext
     {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT workout_activity_type_short, gpx_path, source_name FROM apple_health_workout_routes('test/data/export.zip');"
 
+demo-route-points: fixture ensure-ext
+    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT point_index, lat, lon, ele, time FROM apple_health_workout_route_points('test/data/export.zip') ORDER BY point_index;"
+
 demo-summaries: fixture ensure-ext
     {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT date_components, apple_move_minutes, apple_move_time, active_energy_burned FROM apple_health_activity_summaries('test/data/export.xml') ORDER BY date_components;"
 

@@ -10,5 +10,6 @@ DUCKDB_EXTENSION_ENTRYPOINT(duckdb_connection connection, duckdb_extension_info 
 	RegisterAppleHealthWorkoutsFunction(connection);
 	RegisterAppleHealthActivitySummariesFunction(connection);
 	RegisterAppleHealthWorkoutRoutesFunction(connection);
+	RegisterAppleHealthWorkoutRoutePointsFunction(connection);
 	return true;
 }

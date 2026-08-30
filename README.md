@@ -119,7 +119,9 @@ Activity type, duration, distance, energy, dates, source/device.
 
 ### `apple_health_workout_routes(path)` — **implemented**
 
-Route metadata + `gpx_path` (`FileReference`) with parent workout type/dates for joins. Does not expand GPX track points yet.
+Route metadata + `gpx_path` (`FileReference`) with parent workout type/dates for joins. ### `apple_health_workout_route_points(path)` — **implemented**
+
+GPX `trkpt` rows: lat/lon/ele/time, optional speed/course/h_acc/v_acc, joined to parent workout via route metadata.
 
 ### `apple_health_activity_summaries(path)` — **implemented**
 
@@ -127,7 +129,7 @@ Daily rings. Both `appleMoveMinutes*` (older) and `appleMoveTime*` (iOS 14+) as 
 
 ### Not in v0.1
 
-Workout GPX track points, ECG, `ClinicalRecord`, Correlation as a table, Wasm, community `INSTALL`, Watch/iPhone dedupe.
+ECG, `ClinicalRecord`, Correlation as a table, Wasm, community `INSTALL`, Watch/iPhone dedupe.
 
 **Semantics:** top-level `<Record>` only — nested Correlation children are skipped (see [DESIGN.md](DESIGN.md) and tests).
 

@@ -3,6 +3,7 @@
 #include "apple_health_tf.h"
 #include "parse_health.h"
 #include "zip_source.h"
+#include "parse_gpx.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -874,3 +875,247 @@ void RegisterAppleHealthWorkoutRoutesFunction(duckdb_connection connection) {
 	duckdb_destroy_table_function(&function);
 }
 
+/* -------------------------------------------------------------------------- */
+/* apple_health_workout_route_points                                          */
+/* -------------------------------------------------------------------------- */
+
+typedef struct {
+	ah_gpx_point *rows;
+	size_t count;
+	size_t capacity;
+	char *export_filename;
+	char *path;
+} points_bind_data;
+
+typedef struct {
+	points_bind_data *bind;
+	const ah_workout_route *route;
+} points_collect_ctx;
+
+static void DestroyPointsBind(void *ptr) {
+	points_bind_data *b = (points_bind_data *)ptr;
+	if (!b) {
+		return;
+	}
+	free(b->rows);
+	free(b->export_filename);
+	free(b->path);
+	duckdb_free(b);
+}
+
+static void OnPointCollect(const ah_gpx_point *row, void *userdata) {
+	points_bind_data *b = (points_bind_data *)userdata;
+	if (b->count >= b->capacity) {
+		size_t ncap = b->capacity ? b->capacity * 2 : 256;
+		ah_gpx_point *nr = (ah_gpx_point *)realloc(b->rows, ncap * sizeof(ah_gpx_point));
+		if (!nr) {
+			return;
+		}
+		b->rows = nr;
+		b->capacity = ncap;
+	}
+	b->rows[b->count++] = *row;
+}
+
+typedef struct {
+	ah_workout_route *routes;
+	size_t count;
+	size_t capacity;
+} route_list;
+
+static void OnRouteList(const ah_workout_route *row, void *userdata) {
+	route_list *L = (route_list *)userdata;
+	if (L->count >= L->capacity) {
+		size_t ncap = L->capacity ? L->capacity * 2 : 16;
+		ah_workout_route *nr = (ah_workout_route *)realloc(L->routes, ncap * sizeof(ah_workout_route));
+		if (!nr) {
+			return;
+		}
+		L->routes = nr;
+		L->capacity = ncap;
+	}
+	L->routes[L->count++] = *row;
+}
+
+static void PointsBind(duckdb_bind_info info) {
+	duckdb_logical_type varchar_type = duckdb_create_logical_type(DUCKDB_TYPE_VARCHAR);
+	duckdb_logical_type double_type = duckdb_create_logical_type(DUCKDB_TYPE_DOUBLE);
+	duckdb_logical_type bigint_type = duckdb_create_logical_type(DUCKDB_TYPE_BIGINT);
+	duckdb_logical_type ts_type = duckdb_create_logical_type(DUCKDB_TYPE_TIMESTAMP_TZ);
+
+	duckdb_bind_add_result_column(info, "gpx_path", varchar_type);
+	duckdb_bind_add_result_column(info, "gpx_member", varchar_type);
+	duckdb_bind_add_result_column(info, "workout_activity_type_short", varchar_type);
+	duckdb_bind_add_result_column(info, "workout_start_date", ts_type);
+	duckdb_bind_add_result_column(info, "workout_end_date", ts_type);
+	duckdb_bind_add_result_column(info, "point_index", bigint_type);
+	duckdb_bind_add_result_column(info, "lat", double_type);
+	duckdb_bind_add_result_column(info, "lon", double_type);
+	duckdb_bind_add_result_column(info, "ele", double_type);
+	duckdb_bind_add_result_column(info, "time", ts_type);
+	duckdb_bind_add_result_column(info, "speed", double_type);
+	duckdb_bind_add_result_column(info, "course", double_type);
+	duckdb_bind_add_result_column(info, "h_acc", double_type);
+	duckdb_bind_add_result_column(info, "v_acc", double_type);
+	duckdb_bind_add_result_column(info, "filename", varchar_type);
+
+	duckdb_destroy_logical_type(&varchar_type);
+	duckdb_destroy_logical_type(&double_type);
+	duckdb_destroy_logical_type(&bigint_type);
+	duckdb_destroy_logical_type(&ts_type);
+
+	char *path = BindPathOrError(info, "apple_health_workout_route_points");
+	if (!path) {
+		return;
+	}
+
+	points_bind_data *bind = (points_bind_data *)duckdb_malloc(sizeof(points_bind_data));
+	if (!bind) {
+		free(path);
+		duckdb_bind_set_error(info, "out of memory");
+		return;
+	}
+	memset(bind, 0, sizeof(*bind));
+	bind->path = path;
+
+	char err[256];
+	err[0] = '\0';
+	ah_xml_source *src = ah_xml_source_open(bind->path, err, sizeof(err));
+	if (!src) {
+		char msg[320];
+		snprintf(msg, sizeof(msg), "apple_health_workout_route_points: cannot open '%s': %s", bind->path,
+		         err[0] ? err : "error");
+		DestroyPointsBind(bind);
+		duckdb_bind_set_error(info, msg);
+		return;
+	}
+	bind->export_filename = strdup(ah_xml_source_filename(src));
+
+	route_list routes;
+	memset(&routes, 0, sizeof(routes));
+	ah_parse_callbacks cb = {
+	    .on_record = OnRecordIgnore,
+	    .on_workout = OnWorkoutIgnore,
+	    .on_activity_summary = OnSummaryIgnore,
+	    .on_workout_route = OnRouteList,
+	    .userdata = &routes,
+	};
+	ah_parse_stats stats;
+	memset(&stats, 0, sizeof(stats));
+	int rc = ah_parse_xml_filep(ah_xml_source_file(src), &cb, &stats);
+	ah_xml_source_close(src);
+	if (rc != 0) {
+		free(routes.routes);
+		DestroyPointsBind(bind);
+		duckdb_bind_set_error(info, "apple_health_workout_route_points: export parse failed");
+		return;
+	}
+
+	for (size_t i = 0; i < routes.count; i++) {
+		const ah_workout_route *rt = &routes.routes[i];
+		if (!rt->gpx_path[0]) {
+			continue;
+		}
+		err[0] = '\0';
+		ah_xml_source *gpx = ah_xml_source_open_member(bind->path, rt->gpx_path, err, sizeof(err));
+		if (!gpx) {
+			/* skip missing companion GPX rather than fail the whole scan */
+			continue;
+		}
+		ah_gpx_callbacks gcb = {.on_point = OnPointCollect, .userdata = bind};
+		ah_gpx_stats gst;
+		memset(&gst, 0, sizeof(gst));
+		int grc = ah_parse_gpx_filep(ah_xml_source_file(gpx), rt, ah_xml_source_filename(gpx), &gcb, &gst);
+		ah_xml_source_close(gpx);
+		if (grc != 0) {
+			free(routes.routes);
+			DestroyPointsBind(bind);
+			duckdb_bind_set_error(info, "apple_health_workout_route_points: gpx parse failed");
+			return;
+		}
+	}
+	free(routes.routes);
+
+	duckdb_bind_set_bind_data(info, bind, DestroyPointsBind);
+	duckdb_bind_set_cardinality(info, (idx_t)bind->count, true);
+}
+
+static void AssignTimestampGpx(duckdb_vector vec, uint64_t *validity, idx_t row, const char *iso) {
+	duckdb_timestamp *data = (duckdb_timestamp *)duckdb_vector_get_data(vec);
+	int64_t micros = 0;
+	if (iso && iso[0] && ah_parse_gpx_time(iso, &micros)) {
+		data[row].micros = micros;
+	} else {
+		duckdb_validity_set_row_invalid(validity, row);
+	}
+}
+
+static void PointsFunction(duckdb_function_info info, duckdb_data_chunk output) {
+	points_bind_data *bind = (points_bind_data *)duckdb_function_get_bind_data(info);
+	scan_init_data *init = (scan_init_data *)duckdb_function_get_init_data(info);
+	if (!bind || !init || init->offset >= bind->count) {
+		duckdb_data_chunk_set_size(output, 0);
+		return;
+	}
+
+	const idx_t vector_size = duckdb_vector_size();
+	size_t remaining = bind->count - init->offset;
+	idx_t n = remaining > (size_t)vector_size ? vector_size : (idx_t)remaining;
+
+	duckdb_vector cols[15];
+	for (int c = 0; c < 15; c++) {
+		cols[c] = duckdb_data_chunk_get_vector(output, (idx_t)c);
+	}
+
+	/* nullable: workout_start/end (3,4), ele(8), time(9), speed(10), course(11), h_acc(12), v_acc(13) */
+	int nullable[] = {3, 4, 8, 9, 10, 11, 12, 13};
+	uint64_t *val[15] = {0};
+	for (size_t k = 0; k < sizeof(nullable) / sizeof(nullable[0]); k++) {
+		int c = nullable[k];
+		duckdb_vector_ensure_validity_writable(cols[c]);
+		val[c] = duckdb_vector_get_validity(cols[c]);
+	}
+
+	const char *filename = bind->export_filename ? bind->export_filename : "";
+	int64_t *idx_data = (int64_t *)duckdb_vector_get_data(cols[5]);
+	double *lat_data = (double *)duckdb_vector_get_data(cols[6]);
+	double *lon_data = (double *)duckdb_vector_get_data(cols[7]);
+
+	for (idx_t i = 0; i < n; i++) {
+		const ah_gpx_point *row = &bind->rows[init->offset + i];
+		AssignVarchar(cols[0], i, row->gpx_path);
+		AssignVarchar(cols[1], i, row->gpx_member);
+		AssignVarchar(cols[2], i, row->workout_activity_type_short);
+		AssignTimestamp(cols[3], val[3], i, row->workout_start_date);
+		AssignTimestamp(cols[4], val[4], i, row->workout_end_date);
+		idx_data[i] = row->point_index;
+		lat_data[i] = row->lat;
+		lon_data[i] = row->lon;
+		AssignOptionalDouble(cols[8], val[8], i, row->has_ele, row->ele);
+		AssignTimestampGpx(cols[9], val[9], i, row->time_iso);
+		AssignOptionalDouble(cols[10], val[10], i, row->has_speed, row->speed);
+		AssignOptionalDouble(cols[11], val[11], i, row->has_course, row->course);
+		AssignOptionalDouble(cols[12], val[12], i, row->has_h_acc, row->h_acc);
+		AssignOptionalDouble(cols[13], val[13], i, row->has_v_acc, row->v_acc);
+		AssignVarchar(cols[14], i, filename);
+	}
+
+	init->offset += n;
+	duckdb_data_chunk_set_size(output, n);
+}
+
+void RegisterAppleHealthWorkoutRoutePointsFunction(duckdb_connection connection) {
+	duckdb_table_function function = duckdb_create_table_function();
+	duckdb_table_function_set_name(function, "apple_health_workout_route_points");
+
+	duckdb_logical_type varchar_type = duckdb_create_logical_type(DUCKDB_TYPE_VARCHAR);
+	duckdb_table_function_add_parameter(function, varchar_type);
+	duckdb_destroy_logical_type(&varchar_type);
+
+	duckdb_table_function_set_bind(function, PointsBind);
+	duckdb_table_function_set_init(function, ScanInit);
+	duckdb_table_function_set_function(function, PointsFunction);
+
+	duckdb_register_table_function(connection, function);
+	duckdb_destroy_table_function(&function);
+}
