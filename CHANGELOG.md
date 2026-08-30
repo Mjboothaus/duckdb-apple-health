@@ -20,12 +20,12 @@ Versioning: early **0.x** beta tags; breaking changes allowed until 1.0.
 
 ### Planned
 
-- `apple_health_workout_route_points` GPX trkpt stream (see ROADMAP)
+- `apple_health_workout_route_points` GPX trkpt stream (see docs/ROADMAP)
 - Streaming table-function execute (bounded memory)
 - Named `types` / `start` / `end` parameters
 - DuckDB 2.0 community packaging when C-API CI is ready
 
-See [ROADMAP.md](ROADMAP.md).
+See [ROADMAP.md](docs/ROADMAP.md).
 
 ## [0.1.0-beta] — 2026-08-29
 
@@ -49,7 +49,7 @@ First public **developer beta**.
 - Named scan filters not implemented
 - Nested Correlation `Record` children intentionally skipped
 
-Full notes: [RELEASE_NOTES.md](RELEASE_NOTES.md).
+Full notes: [RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
 
 [Unreleased]: https://github.com/DataBooth/duckdb-apple-health/compare/v0.1.0-beta...HEAD
 [0.1.0-beta]: https://github.com/DataBooth/duckdb-apple-health/releases/tag/v0.1.0-beta

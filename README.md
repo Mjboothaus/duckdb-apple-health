@@ -44,11 +44,11 @@ COPY (
 | Version | **v0.1.0-beta** |
 | Install | Local unsigned `LOAD` only |
 | Platforms proven | macOS Apple Silicon (`osx_arm64`) |
-| DuckDB | Tested with **1.5.x** unsigned C-API load; **2.0** is the strategic target ([ROADMAP.md](ROADMAP.md)) |
+| DuckDB | Tested with **1.5.x** unsigned C-API load; **2.0** is the strategic target ([ROADMAP.md](docs/ROADMAP.md)) |
 | Correctness | Fixture golden + pytest vs `healthkit-to-sqlite` (top-level record semantics) |
 | Limits | Parse currently buffers in bind (RAM ∝ export size); named `types`/`start`/`end` filters not shipped yet |
 
-See [RELEASE_NOTES.md](RELEASE_NOTES.md) and [ROADMAP.md](ROADMAP.md).
+See [RELEASE_NOTES.md](docs/RELEASE_NOTES.md) and [ROADMAP.md](docs/ROADMAP.md).
 
 ## Language
 
@@ -92,7 +92,7 @@ LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
 FROM read_apple_health('test/data/export.zip');
 ```
 
-Full walkthrough: [QUICKSTART.md](QUICKSTART.md).
+Full walkthrough: [QUICKSTART.md](docs/QUICKSTART.md).
 
 ## v0.1 SQL API
 
@@ -131,7 +131,7 @@ Daily rings. Both `appleMoveMinutes*` (older) and `appleMoveTime*` (iOS 14+) as 
 
 ECG, `ClinicalRecord`, Correlation as a table, Wasm, community `INSTALL`, Watch/iPhone dedupe.
 
-**Semantics:** top-level `<Record>` only — nested Correlation children are skipped (see [DESIGN.md](DESIGN.md) and tests).
+**Semantics:** top-level `<Record>` only — nested Correlation children are skipped (see [DESIGN.md](docs/DESIGN.md) and tests).
 
 ## Tests
 
@@ -168,11 +168,12 @@ Apache-2.0. Maintained by [DataBooth](https://www.databooth.com.au).
 
 ## Related
 
-- Quick start: [QUICKSTART.md](QUICKSTART.md)
-- Design & rules: [DESIGN.md](DESIGN.md)
+- Docs index: [docs/README.md](docs/README.md)
+- Quick start: [QUICKSTART.md](docs/QUICKSTART.md)
+- Design & rules: [DESIGN.md](docs/DESIGN.md)
 - Data model (ERD / local DB): [docs/ERD.md](docs/ERD.md)
-- Roadmap (v0.2 + DuckDB 2.0): [ROADMAP.md](ROADMAP.md)
-- Release notes / changelog: [RELEASE_NOTES.md](RELEASE_NOTES.md), [CHANGELOG.md](CHANGELOG.md)
+- Roadmap (v0.2 + DuckDB 2.0): [ROADMAP.md](docs/ROADMAP.md)
+- Release notes / changelog: [RELEASE_NOTES.md](docs/RELEASE_NOTES.md), [CHANGELOG.md](CHANGELOG.md)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Security: [SECURITY.md](SECURITY.md)
 - C-API template: [`duckdb/extension-template-c`](https://github.com/duckdb/extension-template-c)

@@ -19,7 +19,7 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 
 - Public early-stage repo: docs, `justfile`, fixture generator, synthetic Health XML/CSV.
 - **No** C sources, **no** `Makefile` from `extension-template-c`, **no** `.duckdb_extension` yet.
-- Intent is frozen in `DESIGN.md` (gated steps 0–8) and `DESIGN.md`.
+- Intent is frozen in `docs/DESIGN.md` (gated steps 0–8) and `docs/DESIGN.md`.
 
 ### Locked product bets (from docs)
 
@@ -111,7 +111,7 @@ justfile bug: `if path_exists(x)` is invalid; must be `if path_exists(x) == "tru
 ### 2026-08-29 — Intake
 
 - Cloned / pulled `DataBooth/duckdb-apple-health` on `main` (`f31dcad`).
-- Read `DESIGN.md`, `README.md`, `DESIGN.md`, `QUICKSTART.md`, `justfile`, `scripts/make_fixture.py`.
+- Read `docs/DESIGN.md`, `README.md`, `docs/DESIGN.md`, `QUICKSTART.md`, `justfile`, `scripts/make_fixture.py`.
 - Confirmed fixture semantics vs golden CSV (7 records).
 - Started this progressive record for a later `BLOG_POST.md`.
 
@@ -141,7 +141,7 @@ justfile bug: `if path_exists(x)` is invalid; must be `if path_exists(x) == "tru
 
 - From README: “Raw XML is a scan. Parquet is the fast path. That is intentional.”
 - From brief: “Parser and zip code must not `#include` DuckDB headers.”
-- From DESIGN.md: peak memory = one XML element + one output chunk.
+- From docs/DESIGN.md: peak memory = one XML element + one output chunk.
 
 ### 2026-08-29 — Step 1 vendor extension-template-c
 

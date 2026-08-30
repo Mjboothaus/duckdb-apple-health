@@ -1,8 +1,8 @@
 # Roadmap
 
 Working plan for `DataBooth/duckdb-apple-health` after **v0.1**.
-Decisions here should stay aligned with `DESIGN.md`.
-Data model: [docs/ERD.md](docs/ERD.md).
+Decisions here should stay aligned with [DESIGN.md](DESIGN.md).
+Data model: [docs/ERD.md](ERD.md).
 
 Last updated: 2026-08-30.
 
@@ -129,7 +129,7 @@ Workout routes / GPX moved up to **Product focus — workouts & GPS** (no longer
 
 Users often keep a **time series** of full `export_YYYY-MM-DD.zip` files. Apple does not ship deltas; each zip is a snapshot. We still need a clear story for “update my analytics without re-thinking five Parquet filenames.”
 
-**Target shape:** one DuckDB file with stable table names — see [docs/ERD.md](docs/ERD.md).
+**Target shape:** one DuckDB file with stable table names — see [docs/ERD.md](ERD.md).
 
 ```text
 output/apple_health.duckdb
