@@ -4,6 +4,7 @@ Single source of truth for **what** `duckdb-apple-health` is, **how** it is buil
 
 - Product overview & install: [README.md](README.md), [QUICKSTART.md](QUICKSTART.md)
 - Forward plan (v0.2+, DuckDB 2.0 packaging): [ROADMAP.md](ROADMAP.md)
+- Data model / ERD (export → scanner → local DuckDB): [docs/ERD.md](docs/ERD.md)
 - Shipped versions: [RELEASE_NOTES.md](RELEASE_NOTES.md)
 
 Decisions in this file override older chat notes. Last updated: 2026-08-29.

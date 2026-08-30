@@ -2,8 +2,9 @@
 
 Working plan for `DataBooth/duckdb-apple-health` after **v0.1**.
 Decisions here should stay aligned with `DESIGN.md`.
+Data model: [docs/ERD.md](docs/ERD.md).
 
-Last updated: 2026-08-29.
+Last updated: 2026-08-30.
 
 ## North star
 
@@ -65,7 +66,7 @@ Personal / product priority after zip correctness. Real exports already carry ro
 3. **Workout enrichments** — optional `apple_health_workout_events` / statistics tables; keep opt-in so summary scan stays cheap.  
 4. **Ergonomics** — join examples in QUICKSTART; `COPY` routes/points to Parquet; document privacy (precise location).
 
-**Non-goals for early GPS PRs:** map UI, live HealthKit, silent Watch/iPhone dedupe, loading every GPX when the user only asked for workout summaries.
+**Shipped alongside GPS TFs:** marimo `notebooks/map_walks.py` (reads `output/apple_health.duckdb` via `just map-walks`). Live HealthKit and silent Watch/iPhone dedupe remain out of scope.
 
 ## Medium term — v0.2 (performance product)
 
@@ -122,6 +123,79 @@ duckdb -unsigned -c "LOAD 'build/debug/extension/apple_health/apple_health.duckd
 - Python wheel wrapping the extension (fixtures stay Python; runtime stays C)
 
 Workout routes / GPX moved up to **Product focus — workouts & GPS** (no longer “someday only”).
+
+
+## Progressive exports & local database (options)
+
+Users often keep a **time series** of full `export_YYYY-MM-DD.zip` files. Apple does not ship deltas; each zip is a snapshot. We still need a clear story for “update my analytics without re-thinking five Parquet filenames.”
+
+**Target shape:** one DuckDB file with stable table names — see [docs/ERD.md](docs/ERD.md).
+
+```text
+output/apple_health.duckdb
+  gps.workouts | gps.routes | gps.route_points | gps.route_points_map
+  meta.ingest_manifest
+```
+
+Default store is **`output/apple_health.duckdb`** (tables, not a pile of Parquet names). Optional `COPY … TO parquet` for interchange only. Build with `just build-db export_zip=…`.
+
+### Option A — Full rematerialise each export
+
+- Rescan the latest zip; rebuild database tables (or whole `output/maps/` tree).
+- **Pros:** simple, always matches that snapshot.
+- **Cons:** multi-minute GPS bind, high RAM; wastes work when only a few walks were added.
+- **Fits:** rare exports, debugging, first bootstrap.
+
+### Option B — Database + append diffs (recommended for GPS)
+
+```text
+new zip → scan → staging
+staging.routes anti-join lake.routes on gpx_path → INSERT
+new gpx_path points → INSERT (or replace points for that path if GPX hash changed)
+refresh route_points_map for touched paths only
+append meta.ingest_manifest row
+```
+
+- **Pros:** fast ongoing updates; map notebook always hits the local database; one clear schema.
+- **Cons:** need stable keys (`gpx_path`, soft workout key); define no-default-delete policy when a path disappears.
+- **Fits:** monthly/weekly exports, multi-year walk/hike history.
+
+### Option C — Watermark on records only
+
+- For HR/steps: `WHERE start_date > last_watermark` into typed Parquet/database tables.
+- **Pros:** cuts multi-million-row cost.
+- **Cons:** misses edits to older days; needs periodic full refresh.
+- **Fits:** high-volume samples, not the primary GPS path.
+
+### Option D — Scanner `since =>` / named filters
+
+- Extension parameters later (`types`, `start`, `end`) so a scan emits less.
+- **Pros:** less CPU without a lake.
+- **Cons:** still a full zip inflate/parse until streaming execute + pushdown exist; does not replace a local database for multi-export history.
+- **Fits:** v0.1.x/v0.2 ergonomics, complementary to B.
+
+### Option E — Snapshot reconcile (explicit)
+
+- “Make the local database identical to this export” (insert/update/delete).
+- **Pros:** true mirror of one dump.
+- **Cons:** can drop history if the export is incomplete; must be opt-in.
+- **Fits:** archival “as of date” branches, not daily mapping.
+
+### Recommended default
+
+| Concern | Choice |
+|---|---|
+| Source of truth for plotting | `output/apple_health.duckdb` |
+| GPS incremental updates | **Option B** |
+| First load / repair | **Option A** bootstrap into the local database |
+| Health records at scale | **C** + occasional full rebuild |
+| Extension role | Full-scan TFs + future filters (**D**); not multi-export state |
+
+### Non-goals in this area
+
+- Per-walk Parquet as the default layout (prefer tables + `gpx_path` filter; export one walk on demand).
+- Live HealthKit sync (still out of scope).
+- Committing database files or real zips to git.
 
 ## Explicitly out of scope
 

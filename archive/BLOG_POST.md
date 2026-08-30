@@ -107,21 +107,54 @@ Top types were the usual suspects (ActiveEnergyBurned, BasalEnergyBurned, Distan
 ```bash
 just debug
 uv sync
-uv run marimo edit notebooks/explore_export.py
+uv run marimo edit notebooks/explore_export.py   # metrics
+just build-db export_zip=/path/to/export.zip
+just map-walks                                 # walks/hikes map from local DB
 ```
 
-The marimo notebook loads the unsigned extension, times inventory / type histogram / workouts / rings, materialises selected `type_short` values to gitignored `output/*.parquet`, and plots daily averages from Parquet (the fast path).
+`explore_export` loads the unsigned extension, times inventory / type histogram / workouts / rings, materialises selected `type_short` values to gitignored `output/*.parquet`, and plots daily averages from Parquet (the fast path).
 
 ## What v0.1 is — and is not
 
 **Is:** local unsigned `LOAD`, zip/xml/dir paths, records + workouts + activity summaries, TIMESTAMPTZ dates, synthetic fixtures, Apache‑2.0.
 
-**Is not:** community `INSTALL`, Wasm, GPS routes, ECG, clinical records, Watch/iPhone dedupe, or a promise that 1.5.x remains the forever target.
+**Is not:** community `INSTALL`, Wasm, ECG, clinical records, Watch/iPhone dedupe, or a promise that 1.5.x remains the forever target.
+
+
+
+## After v0.1: workouts, GPS, and a local database
+
+The scanner grew a **workouts + GPS** stack:
+
+- `apple_health_workouts` — summaries  
+- `apple_health_workout_routes` — `gpx_path` index  
+- `apple_health_workout_route_points` — track points from companion GPX members  
+
+Re-scanning a multi‑GB zip on every map click is the wrong loop. The practical architecture is:
+
+```text
+export.zip  →  just build-db  →  output/apple_health.duckdb  →  just map-walks
+```
+
+The DuckDB file holds clear tables (`workouts`, `routes`, `route_points`, `route_points_map`) rather than a confusing set of similarly named Parquet files. Parquet remains an **optional export**, not the default store.
+
+Two notebooks stay separate on purpose:
+
+| Notebook | Job |
+|---|---|
+| `explore_export.py` | Records, rings, type charts, metric Parquet |
+| `map_walks.py` | Select walks/hikes and draw GPS from the **local DB** |
+
+Data model diagrams: [`docs/ERD.md`](../docs/ERD.md). Progressive multi-export options (full rebuild vs append-by-`gpx_path`): [`ROADMAP.md`](../ROADMAP.md).
+
+On one personal export, walks/hikes alone were on the order of **~1.3k workouts**, **~1.3k routes**, and **~6M** raw track points — hence a downsampled `route_points_map` layer for plotting.
 
 ## Credits and links
 
 - Repo: [DataBooth/duckdb-apple-health](https://github.com/DataBooth/duckdb-apple-health)
 - C‑API template: [duckdb/extension-template-c](https://github.com/duckdb/extension-template-c)
 - Implementation gates: `DESIGN.md`
+- Data model: `docs/ERD.md`
+- Roadmap (incl. multi-export DB options): `ROADMAP.md`
 
 Built gate‑by‑gate on a MacBook (Apple Silicon) in one focused day — mostly because the brief refused to let us skip evidence.
