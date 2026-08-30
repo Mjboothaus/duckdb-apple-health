@@ -152,8 +152,8 @@ just pytest-ext-real export_zip=/path/to/export.zip
 uv sync
 uv run marimo edit notebooks/explore_export.py
 # walks / hikes map (GPS):
-uv run marimo edit notebooks/map_walks.py
-# or: just map-walks
+just build-db export_zip=/path/to/export.zip
+just map-walks
 ```
 
 ## Privacy
@@ -170,6 +170,7 @@ Apache-2.0. Maintained by [DataBooth](https://www.databooth.com.au).
 
 - Quick start: [QUICKSTART.md](QUICKSTART.md)
 - Design & rules: [DESIGN.md](DESIGN.md)
+- Data model (ERD / local DB): [docs/ERD.md](docs/ERD.md)
 - Roadmap (v0.2 + DuckDB 2.0): [ROADMAP.md](ROADMAP.md)
 - Release notes / changelog: [RELEASE_NOTES.md](RELEASE_NOTES.md), [CHANGELOG.md](CHANGELOG.md)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)

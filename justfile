@@ -7,6 +7,8 @@
 #   just debug
 #   just pytest-ext   # builds debug extension when missing
 #   just demo         # unsigned LOAD + fixture scan
+#   just build-db export_zip=/path/to/export.zip
+#   just map-walks    # map from output/apple_health.duckdb
 #
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 set dotenv-load := false
@@ -120,9 +122,24 @@ demo-routes: fixture ensure-ext
     {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT workout_activity_type_short, gpx_path, source_name FROM apple_health_workout_routes('test/data/export.zip');"
 
 
-# Walks/hikes GPS map notebook (separate from explore_export).
-map-walks: ensure-ext
-    uv run marimo edit notebooks/map_walks.py
+
+# ── Local workout / GPS database ────────────────────────────────────────────
+
+# Build output/apple_health.duckdb from a real export (Walking+Hiking by default).
+build-db export_zip activities="Walking,Hiking": ensure-ext
+    uv run python scripts/build_health_db.py {{export_zip}} --activities {{activities}}
+
+# List walks/hikes from the local DB (build-db first).
+list-walks limit="30":
+    @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
+    {{duckdb}} output/apple_health.duckdb -c "SELECT activity_type_short AS activity, workout_start_date AS start, round(date_diff('second', workout_start_date, workout_end_date)/60.0, 1) AS mins, gpx_path FROM routes ORDER BY workout_start_date DESC NULLS LAST LIMIT {{limit}};"
+
+# Map walks/hikes from the local DB (no zip scan).
+map-walks:
+    @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
+    # Use the project venv (pyproject has marimo/duckdb/pandas/folium). Avoid empty PEP723-only sandbox.
+    uv run --project . marimo edit notebooks/map_walks.py
+
 
 demo-route-points: fixture ensure-ext
     {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT point_index, lat, lon, ele, time FROM apple_health_workout_route_points('test/data/export.zip') ORDER BY point_index;"
