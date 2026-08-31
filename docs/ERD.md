@@ -106,6 +106,7 @@ erDiagram
   workouts ||--o| routes : "soft"
   routes ||--|{ route_points : "gpx_path"
   routes ||--|{ route_points_map : "gpx_path"
+  routes ||--o| route_places : "gpx_path"
   ingest_manifest ||--o{ workouts : "load batch"
 
   workouts {
@@ -138,6 +139,16 @@ erDiagram
     double lat
     double lon
   }
+  route_places {
+    string gpx_path PK
+    double start_lat
+    double start_lon
+    double end_lat
+    double end_lon
+    string start_place
+    string end_place
+    timestamptz geocoded_at
+  }
   ingest_manifest {
     timestamp built_at
     string source_path
@@ -155,6 +166,7 @@ erDiagram
 | `routes` | Routes that have a `gpx_path` |
 | `route_points` | Full GPS detail |
 | `route_points_map` | **Downsampled** points for drawing maps (~≤1500 points per route) |
+| `route_places` | Start/end coordinates + reverse-geocoded labels (`just geocode-places`) |
 | `ingest_manifest` | When the DB was built and from what |
 
 Default `just build-db` loads **Walking** and **Hiking** (override with `activities=`). Other activity types can be added the same way later.
@@ -217,7 +229,8 @@ Apple Health does **not** store suburb/street labels on workouts. Derive them:
 2. Reverse-geocode with OpenStreetMap **Nominatim** (free, no key) via `enrich_with_places`.
 3. Cache under `output/geocode_cache.json` (gitignored) so repeats are offline.
 
-Optional later: materialise `routes.start_place` / `routes.end_place` columns in DuckDB after a batch geocode.
+Materialise with `just geocode-places` (or `just geocode-places limit=50`) into **`route_places`**.
+`list_routes` / `just list-walks` join this table when present.
 
 
 ## Privacy

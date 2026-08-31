@@ -93,17 +93,36 @@ class HealthDataStore:
 
     def summary(self) -> pd.DataFrame:
         con = self.connect()
-        return con.execute(
+        parts = [
+            "SELECT 'workouts' AS t, count(*)::BIGINT AS n FROM workouts",
+            "SELECT 'routes', count(*) FROM routes",
+            "SELECT 'route_points', count(*) FROM route_points",
+            "SELECT 'route_points_map', count(*) FROM route_points_map",
+        ]
+        has_places = con.execute(
             """
-            SELECT 'workouts' AS t, count(*)::BIGINT AS n FROM workouts
-            UNION ALL SELECT 'routes', count(*) FROM routes
-            UNION ALL SELECT 'route_points', count(*) FROM route_points
-            UNION ALL SELECT 'route_points_map', count(*) FROM route_points_map
+            SELECT count(*)::BIGINT FROM information_schema.tables
+            WHERE table_schema IN ('main', 'gps') AND table_name = 'route_places'
             """
-        ).df()
+        ).fetchone()[0]
+        if has_places:
+            parts.append("SELECT 'route_places', count(*) FROM route_places")
+        return con.execute(" UNION ALL ".join(parts)).df()
 
     def manifest(self) -> pd.DataFrame:
         return self.connect().execute("SELECT * FROM ingest_manifest").df()
+
+    def _has_route_places(self) -> bool:
+        con = self.connect()
+        row = con.execute(
+            """
+            SELECT count(*)::BIGINT
+            FROM information_schema.tables
+            WHERE table_schema IN ('main', 'gps')
+              AND table_name = 'route_places'
+            """
+        ).fetchone()
+        return bool(row and row[0] > 0)
 
     def list_routes(
         self,
@@ -119,6 +138,31 @@ class HealthDataStore:
         limit = max(1, int(limit))
         having = "HAVING count(p.point_index) >= 2" if require_points else ""
         join = "JOIN" if require_points else "LEFT JOIN"
+        places_join = ""
+        place_cols = "NULL::VARCHAR AS start_place, NULL::VARCHAR AS end_place,"
+        place_group = ""
+        label_place = ""
+        if self._has_route_places():
+            places_join = "LEFT JOIN route_places pl ON r.gpx_path = pl.gpx_path"
+            place_cols = "any_value(pl.start_place) AS start_place, any_value(pl.end_place) AS end_place,"
+            # Rebuild label with places when available
+            label_place = """
+              CASE
+                WHEN any_value(pl.start_place) IS NOT NULL OR any_value(pl.end_place) IS NOT NULL THEN
+                  strftime(r.workout_start_date, '%Y-%m-%d %H:%M')
+                    || ' · ' || r.activity_type_short
+                    || ' · ' || coalesce(any_value(pl.start_place), '?')
+                    || ' → ' || coalesce(any_value(pl.end_place), '?')
+                    || ' · ' || coalesce(
+                         round(
+                           date_diff('second', r.workout_start_date, r.workout_end_date) / 60.0, 0
+                         )::INT, 0
+                       )::VARCHAR || ' min'
+                ELSE
+            """
+            label_place_end = " END"
+        else:
+            label_place_end = ""
         return con.execute(
             f"""
             SELECT
@@ -131,6 +175,8 @@ class HealthDataStore:
                 date_diff('second', r.workout_start_date, r.workout_end_date) / 60.0, 1
               ) AS duration_min,
               count(p.point_index)::BIGINT AS n_points,
+              {place_cols}
+              {label_place}
               strftime(r.workout_start_date, '%Y-%m-%d %H:%M')
                 || ' · ' || r.activity_type_short
                 || ' · ' || coalesce(
@@ -140,9 +186,11 @@ class HealthDataStore:
                      0
                    )::VARCHAR || ' min'
                 || ' · ' || count(p.point_index)::VARCHAR || ' pts'
+              {label_place_end}
                 AS label
             FROM routes r
             {join} route_points_map p USING (gpx_path)
+            {places_join}
             WHERE r.activity_type_short IN ({in_list})
             GROUP BY 1, 2, 3, 4, 5, r.workout_end_date
             {having}
@@ -249,23 +297,47 @@ class HealthDataStore:
 
         out = catalogue.copy()
         paths = out["gpx_path"].dropna().unique().tolist() if "gpx_path" in out.columns else []
-        ends = self.route_endpoints(paths)
-        if ends.empty:
+
+        # Prefer materialised DuckDB places when present.
+        start_map: dict[str, str] = {}
+        end_map: dict[str, str] = {}
+        if self._has_route_places() and paths:
+            in_gpx = ", ".join(f"'{_sql_str(p)}'" for p in paths)
+            stored = self.connect().execute(
+                f"""
+                SELECT gpx_path, start_place, end_place
+                FROM route_places
+                WHERE gpx_path IN ({in_gpx})
+                """
+            ).df()
+            for row in stored.itertuples(index=False):
+                if row.start_place:
+                    start_map[row.gpx_path] = str(row.start_place)
+                if row.end_place:
+                    end_map[row.gpx_path] = str(row.end_place)
+
+        missing = [p for p in paths if p not in start_map or p not in end_map]
+        if missing:
+            ends = self.route_endpoints(missing)
+            if not ends.empty:
+                geo = geocoder or ReverseGeocoder(
+                    cache_path=Path(cache_path) if cache_path else None
+                )
+                for row in ends.itertuples(index=False):
+                    gpx = row.gpx_path
+                    if gpx not in start_map and row.start_lat is not None and row.start_lon is not None:
+                        start_map[gpx] = geo.lookup(
+                            float(row.start_lat), float(row.start_lon), fetch=fetch
+                        ).label
+                    if gpx not in end_map and row.end_lat is not None and row.end_lon is not None:
+                        end_map[gpx] = geo.lookup(
+                            float(row.end_lat), float(row.end_lon), fetch=fetch
+                        ).label
+
+        if not start_map and not end_map:
             out["start_place"] = None
             out["end_place"] = None
             return out
-
-        geo = geocoder or ReverseGeocoder(
-            cache_path=Path(cache_path) if cache_path else None
-        )
-        start_map: dict[str, str] = {}
-        end_map: dict[str, str] = {}
-        for row in ends.itertuples(index=False):
-            gpx = row.gpx_path
-            if row.start_lat is not None and row.start_lon is not None:
-                start_map[gpx] = geo.lookup(float(row.start_lat), float(row.start_lon), fetch=fetch).label
-            if row.end_lat is not None and row.end_lon is not None:
-                end_map[gpx] = geo.lookup(float(row.end_lat), float(row.end_lon), fetch=fetch).label
 
         out["start_place"] = out["gpx_path"].map(start_map)
         out["end_place"] = out["gpx_path"].map(end_map)
@@ -292,6 +364,142 @@ class HealthDataStore:
 
             out["label"] = out.apply(_relabel, axis=1)
         return out
+
+
+    def materialise_route_places(
+        self,
+        *,
+        gpx_paths: Iterable[str] | None = None,
+        only_missing: bool = True,
+        fetch: bool = True,
+        cache_path: Path | str | None = None,
+        geocoder: object | None = None,
+        limit: int | None = None,
+        progress_every: int = 25,
+    ) -> dict[str, int]:
+        """Batch reverse-geocode route endpoints into ``gps.route_places``.
+
+        Creates/updates table columns: gpx_path, start/end lat/lon + place labels,
+        geocoded_at. Main-schema view ``route_places`` is refreshed. JSON cache under
+        ``output/geocode_cache.json`` still applies for Nominatim.
+
+        Returns counts: considered, written, skipped, failed.
+        """
+        from .places import ReverseGeocoder
+
+        # Need write access; reopen if currently read-only.
+        if self.read_only or self._con is not None:
+            self.close()
+            self.read_only = False
+        con = self.connect()
+        con.execute("CREATE SCHEMA IF NOT EXISTS gps")
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS gps.route_places (
+              gpx_path VARCHAR PRIMARY KEY,
+              start_lat DOUBLE,
+              start_lon DOUBLE,
+              end_lat DOUBLE,
+              end_lon DOUBLE,
+              start_place VARCHAR,
+              end_place VARCHAR,
+              geocoded_at TIMESTAMPTZ
+            )
+            """
+        )
+        con.execute(
+            "CREATE OR REPLACE VIEW route_places AS SELECT * FROM gps.route_places"
+        )
+
+        ends = self.route_endpoints(gpx_paths)
+        if ends.empty:
+            return {"considered": 0, "written": 0, "skipped": 0, "failed": 0}
+
+        # Prefer most recent workouts when limiting.
+        order = con.execute(
+            """
+            SELECT gpx_path
+            FROM routes
+            ORDER BY workout_start_date DESC NULLS LAST
+            """
+        ).df()
+        if not order.empty:
+            rank = {g: i for i, g in enumerate(order["gpx_path"].tolist())}
+            ends = ends.assign(_rank=ends["gpx_path"].map(lambda g: rank.get(g, 10**9)))
+            ends = ends.sort_values("_rank").drop(columns="_rank")
+
+        if only_missing:
+            existing = {
+                r[0]
+                for r in con.execute(
+                    """
+                    SELECT gpx_path FROM gps.route_places
+                    WHERE start_place IS NOT NULL AND end_place IS NOT NULL
+                    """
+                ).fetchall()
+            }
+            ends = ends[~ends["gpx_path"].isin(existing)].copy()
+
+        if limit is not None:
+            ends = ends.head(max(0, int(limit))).copy()
+
+        considered = len(ends)
+        if considered == 0:
+            return {"considered": 0, "written": 0, "skipped": 0, "failed": 0}
+
+        geo = geocoder or ReverseGeocoder(
+            cache_path=Path(cache_path) if cache_path else None
+        )
+        written = 0
+        failed = 0
+        rows: list[tuple] = []
+        for i, row in enumerate(ends.itertuples(index=False), start=1):
+            try:
+                sp = ep = None
+                if row.start_lat is not None and row.start_lon is not None:
+                    sp = geo.lookup(float(row.start_lat), float(row.start_lon), fetch=fetch).label
+                if row.end_lat is not None and row.end_lon is not None:
+                    ep = geo.lookup(float(row.end_lat), float(row.end_lon), fetch=fetch).label
+                rows.append(
+                    (
+                        row.gpx_path,
+                        float(row.start_lat) if row.start_lat is not None else None,
+                        float(row.start_lon) if row.start_lon is not None else None,
+                        float(row.end_lat) if row.end_lat is not None else None,
+                        float(row.end_lon) if row.end_lon is not None else None,
+                        sp,
+                        ep,
+                    )
+                )
+            except Exception:
+                failed += 1
+            if progress_every and i % progress_every == 0:
+                print(f"  geocoded {i}/{considered}…", flush=True)
+
+        if rows:
+            # DuckDB upsert: delete keys then insert (portable across versions).
+            keys = [r[0] for r in rows]
+            con.executemany("DELETE FROM gps.route_places WHERE gpx_path = ?", [(k,) for k in keys])
+            con.executemany(
+                """
+                INSERT INTO gps.route_places
+                  (gpx_path, start_lat, start_lon, end_lat, end_lon,
+                   start_place, end_place, geocoded_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, now())
+                """,
+                rows,
+            )
+            written = len(rows)
+
+        # Keep main view in sync (already created).
+        n = con.execute("SELECT count(*) FROM gps.route_places").fetchone()[0]
+        print(f"route_places rows in DB: {n}", flush=True)
+        return {
+            "considered": considered,
+            "written": written,
+            "skipped": 0,
+            "failed": failed,
+        }
 
     def points_for_labels(
         self,

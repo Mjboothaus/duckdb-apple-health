@@ -98,3 +98,46 @@ def test_route_endpoints_and_enrich_offline():
         enriched = store.enrich_with_places(cat, fetch=False, geocoder=FakeGeo())
         assert "start_place" in enriched.columns
         assert enriched["start_place"].notna().any()
+
+
+@pytest.mark.skipif(not DB.is_file(), reason="output/apple_health.duckdb not built")
+def test_materialise_route_places_writes_table(tmp_path):
+    import shutil
+    import tempfile
+
+    from apple_health_data.places import PlaceLabel
+
+    class FakeGeo:
+        def lookup(self, lat, lon, *, fetch=True):
+            return PlaceLabel(lat=lat, lon=lon, label=f"Place-{lat:.3f}-{lon:.3f}")
+
+    # Copy DB so we do not mutate the user's primary file in unit tests.
+    td = Path(tempfile.mkdtemp(prefix="ah-places-"))
+    try:
+        db_copy = td / "apple_health.duckdb"
+        shutil.copy2(DB, db_copy)
+        store = HealthDataStore(db_copy, read_only=False)
+        try:
+            cat = store.list_routes(limit=3)
+            paths = cat["gpx_path"].tolist()
+            stats = store.materialise_route_places(
+                gpx_paths=paths,
+                only_missing=False,
+                fetch=False,
+                geocoder=FakeGeo(),
+            )
+            assert stats["written"] >= 1
+            places = store.connect().execute(
+                "SELECT gpx_path, start_place, end_place FROM route_places"
+            ).df()
+            assert len(places) >= 1
+            assert places["start_place"].notna().all()
+            # list_routes should surface places from the table
+            cat2 = store.list_routes(limit=5)
+            assert "start_place" in cat2.columns
+            matched = cat2[cat2["gpx_path"].isin(paths)]
+            assert matched["start_place"].notna().any()
+        finally:
+            store.close()
+    finally:
+        shutil.rmtree(td, ignore_errors=True)
