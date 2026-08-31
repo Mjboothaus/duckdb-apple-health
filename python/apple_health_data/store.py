@@ -188,6 +188,111 @@ class HealthDataStore:
             """
         ).df()
 
+
+    def route_endpoints(self, gpx_paths: Iterable[str] | None = None) -> pd.DataFrame:
+        """First/last map-layer coordinates per route (for reverse geocoding)."""
+        con = self.connect()
+        if gpx_paths is None:
+            where = ""
+        else:
+            paths = [p for p in gpx_paths if p]
+            if not paths:
+                return pd.DataFrame(
+                    columns=[
+                        "gpx_path",
+                        "start_lat",
+                        "start_lon",
+                        "end_lat",
+                        "end_lon",
+                    ]
+                )
+            in_gpx = ", ".join(f"'{_sql_str(p)}'" for p in paths)
+            where = f"WHERE gpx_path IN ({in_gpx})"
+        return con.execute(
+            f"""
+            WITH ordered AS (
+              SELECT gpx_path, point_index, lat, lon,
+                     row_number() OVER (PARTITION BY gpx_path ORDER BY point_index) AS rn_asc,
+                     row_number() OVER (PARTITION BY gpx_path ORDER BY point_index DESC) AS rn_desc
+              FROM route_points_map
+              {where}
+            )
+            SELECT
+              gpx_path,
+              max(CASE WHEN rn_asc = 1 THEN lat END) AS start_lat,
+              max(CASE WHEN rn_asc = 1 THEN lon END) AS start_lon,
+              max(CASE WHEN rn_desc = 1 THEN lat END) AS end_lat,
+              max(CASE WHEN rn_desc = 1 THEN lon END) AS end_lon
+            FROM ordered
+            GROUP BY gpx_path
+            """
+        ).df()
+
+    def enrich_with_places(
+        self,
+        catalogue: pd.DataFrame,
+        *,
+        fetch: bool = True,
+        cache_path: Path | str | None = None,
+        geocoder: object | None = None,
+    ) -> pd.DataFrame:
+        """Add start_place / end_place via reverse geocode (cached Nominatim).
+
+        Does not rewrite the DuckDB file — labels are derived and cached under
+        ``output/geocode_cache.json``. Pass ``fetch=False`` to use cache only
+        (missing coords fall back to lat/lon text).
+        """
+        if catalogue is None or catalogue.empty:
+            return catalogue.copy() if catalogue is not None else pd.DataFrame()
+
+        from .places import ReverseGeocoder
+
+        out = catalogue.copy()
+        paths = out["gpx_path"].dropna().unique().tolist() if "gpx_path" in out.columns else []
+        ends = self.route_endpoints(paths)
+        if ends.empty:
+            out["start_place"] = None
+            out["end_place"] = None
+            return out
+
+        geo = geocoder or ReverseGeocoder(
+            cache_path=Path(cache_path) if cache_path else None
+        )
+        start_map: dict[str, str] = {}
+        end_map: dict[str, str] = {}
+        for row in ends.itertuples(index=False):
+            gpx = row.gpx_path
+            if row.start_lat is not None and row.start_lon is not None:
+                start_map[gpx] = geo.lookup(float(row.start_lat), float(row.start_lon), fetch=fetch).label
+            if row.end_lat is not None and row.end_lon is not None:
+                end_map[gpx] = geo.lookup(float(row.end_lat), float(row.end_lon), fetch=fetch).label
+
+        out["start_place"] = out["gpx_path"].map(start_map)
+        out["end_place"] = out["gpx_path"].map(end_map)
+        # Prefer place-aware labels when available.
+        if "label" in out.columns:
+            def _relabel(r: pd.Series) -> str:
+                base = str(r.get("label") or "")
+                # Strip trailing " · N pts" noise stays; insert place after activity when present.
+                sp, ep = r.get("start_place"), r.get("end_place")
+                if pd.isna(sp) and pd.isna(ep):
+                    return base
+                place = f"{sp or '?'} → {ep or '?'}"
+                # Rebuild a compact label for pickers.
+                act = r.get("activity") or ""
+                start = r.get("start_date")
+                try:
+                    start_s = pd.Timestamp(start).strftime("%Y-%m-%d %H:%M") if start is not None else ""
+                except (TypeError, ValueError):
+                    start_s = str(start) if start is not None else ""
+                mins = r.get("duration_min")
+                mins_s = f"{int(round(float(mins)))} min" if mins is not None and not pd.isna(mins) else ""
+                bits = [b for b in (start_s, str(act), place, mins_s) if b]
+                return " · ".join(bits) if bits else base
+
+            out["label"] = out.apply(_relabel, axis=1)
+        return out
+
     def points_for_labels(
         self,
         catalogue: pd.DataFrame,

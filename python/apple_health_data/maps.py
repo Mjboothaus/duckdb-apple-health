@@ -45,12 +45,14 @@ def build_route_map(
     points: pd.DataFrame,
     *,
     max_total_points: int = 6000,
+    height: int | str = 720,
     colours: Mapping[str, str] | None = None,
 ) -> tuple[folium.Map | None, pd.DataFrame, str]:
     """Build a Folium map for selected routes.
 
     Returns ``(map_or_none, drawn_points, status_message)``.
     Uses free tile layers that do not require API keys.
+    ``height`` is pixels (int) or a CSS length string (default 720).
     """
     if chosen is None or chosen.empty:
         return None, pd.DataFrame(), "No routes selected."
@@ -62,11 +64,13 @@ def build_route_map(
         return None, draw, "Not enough points to draw."
 
     palette = dict(DEFAULT_COLOURS if colours is None else colours)
+    map_height = height if isinstance(height, str) else int(height)
     m = folium.Map(
         location=[float(draw["lat"].mean()), float(draw["lon"].mean())],
         zoom_start=12,
         tiles=None,
         control_scale=True,
+        height=map_height,
     )
     # Free raster tiles only (no Mapbox / Stadia / Google keys).
     folium.TileLayer(
@@ -112,17 +116,24 @@ def build_route_map(
         meta_rows = chosen[chosen["gpx_path"] == gpx]
         if meta_rows.empty:
             label = f"{act} · {gpx}"
+            start_tip, end_tip = "Start", "End"
         else:
             meta = meta_rows.iloc[0]
+            start_place = meta["start_place"] if "start_place" in meta.index and pd.notna(meta.get("start_place")) else None
+            end_place = meta["end_place"] if "end_place" in meta.index and pd.notna(meta.get("end_place")) else None
             label = f"{meta['activity']} · {meta['start_date']} · {meta['duration_min']} min"
+            if start_place or end_place:
+                label = f"{label}<br/>{start_place or '?'} → {end_place or '?'}"
+            start_tip = f"Start: {start_place}" if start_place else "Start"
+            end_tip = f"End: {end_place}" if end_place else "End"
         coords = list(zip(g["lat"].tolist(), g["lon"].tolist()))
         if len(coords) < 2:
             continue
         n_routes += 1
         folium.PolyLine(coords, color=colour, weight=4, opacity=0.85, tooltip=label).add_to(m)
-        folium.CircleMarker(coords[0], radius=5, color=colour, fill=True, tooltip="Start").add_to(m)
+        folium.CircleMarker(coords[0], radius=5, color=colour, fill=True, tooltip=start_tip).add_to(m)
         folium.CircleMarker(
-            coords[-1], radius=5, color=colour, fill=True, fill_opacity=0.4, tooltip="End"
+            coords[-1], radius=5, color=colour, fill=True, fill_opacity=0.4, tooltip=end_tip
         ).add_to(m)
         bounds.extend(coords)
 

@@ -209,6 +209,17 @@ python/apple_health_data/
 
 `notebooks/map_walks.py` is UI-only. `scripts/build_health_db.py` calls `HealthDataStore.build_from_export`.
 
+### Start / end place names
+
+Apple Health does **not** store suburb/street labels on workouts. Derive them:
+
+1. Take first/last GPS point per `gpx_path` (`HealthDataStore.route_endpoints`).
+2. Reverse-geocode with OpenStreetMap **Nominatim** (free, no key) via `enrich_with_places`.
+3. Cache under `output/geocode_cache.json` (gitignored) so repeats are offline.
+
+Optional later: materialise `routes.start_place` / `routes.end_place` columns in DuckDB after a batch geocode.
+
+
 ## Privacy
 
 - Real zips and `output/apple_health.duckdb` stay **off git**.

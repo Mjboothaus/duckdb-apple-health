@@ -57,27 +57,35 @@ def _(DEFAULT_DB_PATH, mo):
     max_points = mo.ui.slider(
         500, 20_000, value=6_000, step=500, label="Max points drawn (total)", show_value=True
     )
+    map_height = mo.ui.slider(
+        400, 1200, value=820, step=20, label="Map height (px)", show_value=True
+    )
+    geocode_places = mo.ui.checkbox(
+        value=True, label="Resolve start/end place names (Nominatim, cached)"
+    )
     header = mo.vstack(
         [
             mo.md(
+                r"""
+                # Walks & hikes map
+
+                UI only — data via **`HealthDataStore`** (`python/apple_health_data/`).
+
+                ```bash
+                just build-db export_zip=/path/to/export.zip
+                just map-walks
+                ```
                 """
-# Walks & hikes map
-
-UI only — data via **`HealthDataStore`** (`python/apple_health_data/`).
-
-```bash
-just build-db export_zip=/path/to/export.zip
-just map-walks
-```
-"""
             ),
             db_path,
             activity_filter,
             max_list,
             max_points,
+            map_height,
+            geocode_places,
         ]
     )
-    return activity_filter, db_path, header, max_list, max_points
+    return activity_filter, db_path, geocode_places, header, map_height, max_list, max_points
 
 
 @app.cell
@@ -92,15 +100,15 @@ def _(HealthDataStore, Path, db_path, mo):
     store = None
     if not path.is_file():
         db_panel = mo.md(
-            f"""
-### Database not found
+            rf"""
+            ### Database not found
 
-`{path}`
+            `{path}`
 
-```bash
-just build-db export_zip=/path/to/your/export.zip
-```
-"""
+            ```bash
+            just build-db export_zip=/path/to/your/export.zip
+            ```
+            """
         )
     else:
         try:
@@ -128,7 +136,7 @@ def _(db_panel):
 
 
 @app.cell
-def _(activity_filter, max_list, mo, store):
+def _(activity_filter, geocode_places, max_list, mo, store):
     catalogue = None
     route_picker = mo.ui.multiselect(options=[], value=[], label="Select walk(s) / hike(s)")
 
@@ -137,6 +145,9 @@ def _(activity_filter, max_list, mo, store):
     else:
         types = list(activity_filter.value) or ["Walking", "Hiking"]
         catalogue = store.list_routes(activities=types, limit=int(max_list.value))
+        if not catalogue.empty and geocode_places.value:
+            # Network only for cache misses; results land in output/geocode_cache.json.
+            catalogue = store.enrich_with_places(catalogue, fetch=True)
         if catalogue.empty:
             routes_panel = mo.md(f"No mapped routes for **{', '.join(types)}**.")
         else:
@@ -146,14 +157,23 @@ def _(activity_filter, max_list, mo, store):
                 value=labels[: min(3, len(labels))],
                 label="Select walk(s) / hike(s)",
             )
+            cols = [
+                c
+                for c in (
+                    "activity",
+                    "start_date",
+                    "duration_min",
+                    "start_place",
+                    "end_place",
+                    "n_points",
+                    "gpx_path",
+                )
+                if c in catalogue.columns
+            ]
             routes_panel = mo.vstack(
                 [
                     mo.md(f"### Routes ({len(catalogue)} listed)"),
-                    mo.ui.table(
-                        catalogue[["activity", "start_date", "duration_min", "n_points", "gpx_path"]],
-                        selection=None,
-                        page_size=12,
-                    ),
+                    mo.ui.table(catalogue[cols], selection=None, page_size=12),
                     route_picker,
                 ]
             )
@@ -167,7 +187,7 @@ def _(routes_panel):
 
 
 @app.cell
-def _(build_route_map, catalogue, max_points, mo, route_picker, store):
+def _(build_route_map, catalogue, map_height, max_points, mo, route_picker, store):
     map_panel = mo.md("### Map\n\nNothing to draw yet.")
 
     if store is not None and catalogue is not None and not catalogue.empty:
@@ -177,7 +197,10 @@ def _(build_route_map, catalogue, max_points, mo, route_picker, store):
         else:
             chosen, pts = store.points_for_labels(catalogue, selected)
             fmap, _drawn, status = build_route_map(
-                chosen, pts, max_total_points=int(max_points.value)
+                chosen,
+                pts,
+                max_total_points=int(max_points.value),
+                height=int(map_height.value),
             )
             if fmap is None:
                 map_panel = mo.md(f"### Map\n\n{status}")
@@ -200,19 +223,19 @@ def _(map_panel):
 @app.cell
 def _(mo):
     mo.md(
+        r"""
+        ---
+        ### Commands
+
+        ```bash
+        just build-db export_zip=/path/to/export.zip
+        just list-walks 10
+        just map-walks
+        ```
+
+        Helper package: `python/apple_health_data/` (`HealthDataStore`, `build_route_map`, place labels).
+        Model: `docs/ERD.md`. Place cache: `output/geocode_cache.json`.
         """
----
-### Commands
-
-```bash
-just build-db export_zip=/path/to/export.zip
-just list-walks 10
-just map-walks
-```
-
-Helper package: `python/apple_health_data/` (`HealthDataStore`, `build_route_map`).
-Model: `docs/ERD.md`.
-"""
     )
     return
 

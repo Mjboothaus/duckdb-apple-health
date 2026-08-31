@@ -49,3 +49,52 @@ def test_downsample_keeps_ends():
     assert out["point_index"].iloc[0] == 0
     assert out["point_index"].iloc[-1] == 99
     assert len(out) < 100
+
+
+def test_format_nominatim_address_prefers_suburb():
+    from apple_health_data import format_nominatim_address
+
+    label = format_nominatim_address(
+        {
+            "display_name": "Long full name, Sydney, NSW, Australia",
+            "address": {
+                "road": "Kent Street",
+                "suburb": "Sydney",
+                "state": "New South Wales",
+                "country": "Australia",
+            },
+        }
+    )
+    assert "Kent Street" in label
+    assert "Sydney" in label
+
+
+def test_reverse_geocoder_uses_cache(tmp_path):
+    from apple_health_data import ReverseGeocoder
+
+    cache = tmp_path / "geo.json"
+    cache.write_text(
+        '{"-33.8700,151.2100": {"lat": -33.87, "lon": 151.21, "label": "Test Place, NSW"}}\n',
+        encoding="utf-8",
+    )
+    geo = ReverseGeocoder(cache_path=cache, min_interval_s=0)
+    hit = geo.lookup(-33.87001, 151.21002, fetch=False)
+    assert hit.label == "Test Place, NSW"
+
+
+@pytest.mark.skipif(not DB.is_file(), reason="output/apple_health.duckdb not built")
+def test_route_endpoints_and_enrich_offline():
+    class FakeGeo:
+        def lookup(self, lat, lon, *, fetch=True):
+            from apple_health_data.places import PlaceLabel
+
+            return PlaceLabel(lat=lat, lon=lon, label=f"P({lat:.2f},{lon:.2f})")
+
+    with HealthDataStore(DB) as store:
+        cat = store.list_routes(activities=["Walking", "Hiking"], limit=2)
+        ends = store.route_endpoints(cat["gpx_path"].tolist())
+        assert len(ends) >= 1
+        assert {"start_lat", "start_lon", "end_lat", "end_lon"} <= set(ends.columns)
+        enriched = store.enrich_with_places(cat, fetch=False, geocoder=FakeGeo())
+        assert "start_place" in enriched.columns
+        assert enriched["start_place"].notna().any()
