@@ -9,6 +9,8 @@
 #   just demo         # unsigned LOAD + fixture scan
 #   just build-db export_zip=/path/to/export.zip
 #   just map-walks    # map from output/apple_health.duckdb
+#   just geocode-places          # fill route_places (Nominatim)
+#   just geocode-places limit=50
 #
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 set dotenv-load := false
@@ -129,33 +131,15 @@ demo-routes: fixture ensure-ext
 build-db export_zip activities="Walking,Hiking": ensure-ext
     uv run python scripts/build_health_db.py {{export_zip}} --activities {{activities}}
 
-# List walks/hikes from the local DB (build-db first).
+# List walks/hikes from the local DB (build-db first). Includes places when geocoded.
 list-walks limit="30":
     @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
-    {{duckdb}} output/apple_health.duckdb -c "SELECT activity_type_short AS activity, workout_start_date AS start, round(date_diff('second', workout_start_date, workout_end_date)/60.0, 1) AS mins, gpx_path FROM routes ORDER BY workout_start_date DESC NULLS LAST LIMIT {{limit}};"
+    @{{duckdb}} output/apple_health.duckdb -c "SELECT r.activity_type_short AS activity, r.workout_start_date AS start, round(date_diff('second', r.workout_start_date, r.workout_end_date)/60.0, 1) AS mins, pl.start_place, pl.end_place, r.gpx_path FROM routes r LEFT JOIN route_places pl USING (gpx_path) ORDER BY r.workout_start_date DESC NULLS LAST LIMIT {{limit}};" 2>/dev/null \
+      || {{duckdb}} output/apple_health.duckdb -c "SELECT activity_type_short AS activity, workout_start_date AS start, round(date_diff('second', workout_start_date, workout_end_date)/60.0, 1) AS mins, gpx_path FROM routes ORDER BY workout_start_date DESC NULLS LAST LIMIT {{limit}};"
 
-# Map walks/hikes from the local DB (no zip scan).
-map-walks:
+# Reverse-geocode route start/end into gps.route_places (Nominatim + cache).
+# Examples: just geocode-places   |   just geocode-places -- --limit 50   |   just geocode-places -- --all
+geocode-places *args:
     @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
-    # Use the project venv (pyproject has marimo/duckdb/pandas/folium). Avoid empty PEP723-only sandbox.
-    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . marimo edit notebooks/map_walks.py
+    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/geocode_route_places.py {{args}}
 
-
-demo-route-points: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT point_index, lat, lon, ele, time FROM apple_health_workout_route_points('test/data/export.zip') ORDER BY point_index;"
-
-demo-summaries: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT date_components, apple_move_minutes, apple_move_time, active_energy_burned FROM apple_health_activity_summaries('test/data/export.xml') ORDER BY date_components;"
-
-# Ad-hoc counts on a real export (path stays outside the repo).
-demo-real export_zip: ensure-ext
-    @test -f "{{export_zip}}" || { echo "export_zip not found: {{export_zip}}"; exit 1; }
-    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT count(*) AS records FROM read_apple_health('{{export_zip}}'); SELECT count(*) AS workouts FROM apple_health_workouts('{{export_zip}}'); SELECT count(*) AS activity_summaries FROM apple_health_activity_summaries('{{export_zip}}');"
-
-# Extension correctness tests (fixture). Builds debug extension if missing.
-pytest-ext: ensure-ext
-    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run pytest -q
-
-# Optional real-export smoke (path must stay outside the repo).
-pytest-ext-real export_zip: ensure-ext
-    APPLE_HEALTH_EXPORT_ZIP={{export_zip}} uv run pytest -q -m slow
