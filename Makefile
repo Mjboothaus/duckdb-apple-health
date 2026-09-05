@@ -10,8 +10,12 @@ EXTENSION_NAME=apple_health
 #          the header is unsafe.
 USE_UNSTABLE_C_API=0
 
-# The DuckDB version to target
-TARGET_DUCKDB_VERSION=v1.2.0
+# DuckDB C-API version baked into extension metadata (must be a parseable vMAJOR.MINOR.PATCH).
+# Headers are refreshed from DUCKDB_HEADER_REF (branch/tag). DuckDB 2.0 alpha still exposes
+# stable C API 1.5.6 on the v2.0-cyanoptera branch — see docs/ROADMAP.md.
+# Override: make debug TARGET_DUCKDB_VERSION=v1.2.0 DUCKDB_HEADER_REF=v1.2.0
+TARGET_DUCKDB_VERSION ?= v1.5.6
+DUCKDB_HEADER_REF ?= v2.0-cyanoptera
 
 all: configure release
 
@@ -43,3 +47,23 @@ parse_health_cli:
 	@mkdir -p build/debug
 	$(CC) -std=c11 -Wall -Wextra -O2 -I src $(ZLIB_CFLAGS) -o build/debug/parse_health \
 		src/parse_health.c src/zip_source.c src/parse_health_main.c $(ZLIB_LIBS)
+
+# ── DuckDB 2.0-alpha helpers ────────────────────────────────────────────────
+# Headers come from DUCKDB_HEADER_REF; metadata uses TARGET_DUCKDB_VERSION (semver).
+.PHONY: headers-alpha debug-alpha release-alpha
+headers-alpha: check_configure
+	@echo "Fetching C API headers from duckdb/$(DUCKDB_HEADER_REF)…"
+	$(PYTHON_VENV_BIN) -c "import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/duckdb/duckdb/$(DUCKDB_HEADER_REF)/src/include/duckdb.h', 'duckdb_capi/duckdb.h')"
+	$(PYTHON_VENV_BIN) -c "import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/duckdb/duckdb/$(DUCKDB_HEADER_REF)/src/include/duckdb_extension.h', 'duckdb_capi/duckdb_extension.h')"
+	@rg -n "DUCKDB_EXTENSION_API_VERSION_(MAJOR|MINOR|PATCH)" duckdb_capi/duckdb_extension.h | head -5 || true
+
+debug-alpha: headers-alpha
+	$(MAKE) debug TARGET_DUCKDB_VERSION=$(TARGET_DUCKDB_VERSION)
+
+# SQLLogic (`make test_debug`) needs configure/venv duckdb that can load C API ≥ TARGET.
+# After switching to 2.0-alpha metadata, upgrade the template venv once:
+#   ./configure/venv/bin/python -m pip install --pre --upgrade "duckdb>=1.6.0.dev0"
+
+release-alpha: headers-alpha
+	$(MAKE) release TARGET_DUCKDB_VERSION=$(TARGET_DUCKDB_VERSION)
+

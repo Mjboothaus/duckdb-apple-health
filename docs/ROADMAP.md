@@ -4,7 +4,7 @@ Working plan for `DataBooth/duckdb-apple-health` after **v0.1**.
 Decisions here should stay aligned with [DESIGN.md](DESIGN.md).
 Data model: [docs/ERD.md](ERD.md).
 
-Last updated: 2026-08-30.
+Last updated: 2026-09-05.
 
 ## North star
 
@@ -95,6 +95,35 @@ JOIN apple_health_workout_route_points('export.zip') p USING (/* join key TBD */
 ## DuckDB 2.0 extension framework
 
 v0.1 already **bets on** the stable C API path that 2.0 is standardising (`extension-template-c`, `duckdb_extension.h`, unsigned community-style load).
+
+### Try DuckDB v2.0 / 2.1 alpha now
+
+See [Try DuckDB v2.0-alpha](https://duckdb.org/2026/09/02/try-duckdb-20-alpha).
+
+```bash
+# Alpha CLI (user-local; does not replace Homebrew duckdb)
+curl https://install.duckdb.org | DUCKDB_VERSION=alpha bash
+export PATH="$HOME/.duckdb/cli/latest:$PATH"
+
+# Headers from v2.0-cyanoptera + extension metadata v1.5.6 (parseable C API semver)
+just debug-alpha
+# or: make debug-alpha
+
+# LOAD requires absolute paths on hardened alpha builds
+just duckdb-alpha
+just demo
+
+# Python client (project already allows prereleases)
+uv sync --project .
+uv run python -c "import duckdb; print(duckdb.__version__, duckdb.sql('select version()').fetchone())"
+```
+
+Notes:
+
+- Extension **metadata** must be a parseable `vMAJOR.MINOR.PATCH` (not the branch name `v2.0-cyanoptera`).
+- C API headers on cyanoptera currently report **1.5.6**; we keep `USE_UNSTABLE_C_API=0`.
+- Homebrew DuckDB 1.5.x may refuse extensions built for C API > 1.2.0 — use the alpha CLI for this track.
+- Report load/parse failures upstream with a repro.
 
 When **DuckDB 2.0 GA** (and community C-API CI) lands, we intend to:
 
