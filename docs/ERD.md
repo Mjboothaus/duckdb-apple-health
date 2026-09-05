@@ -167,6 +167,7 @@ erDiagram
 | `route_points` | Full GPS detail |
 | `route_points_map` | **Downsampled** points for drawing maps (~≤1500 points per route) |
 | `route_places` | Start/end coordinates + reverse-geocoded labels (`just geocode-places`) |
+| `walk_photos` | Photos matched to routes via Photos.sqlite (`just photos-for-walks`) |
 | `ingest_manifest` | When the DB was built and from what |
 
 Default `just build-db` loads **Walking** and **Hiking** (override with `activities=`). Other activity types can be added the same way later.

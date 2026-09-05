@@ -238,3 +238,33 @@ typeof(start_date) = TIMESTAMP WITH TIME ZONE
 just demo-workouts  → Running | 25 | 4.2 | 280
 just demo-summaries → two rows with old/new move attrs
 ```
+
+---
+
+## Chronology (continued)
+
+### 2026-08-30 — GPS product + local DB
+
+- Workout routes + route points table functions; real-export smoke on multi‑million points.
+- `just build-db` → `output/apple_health.duckdb` (workouts / routes / route_points / route_points_map).
+- Marimo `map_walks` (DB-only); docs under `docs/` (ERD, ROADMAP progressive-export options).
+- Naming: prefer “local database” over “lake”.
+
+### 2026-08-31 — Helper extraction + places
+
+- PR **#18**: `python/apple_health_data/` (`HealthDataStore`, Folium maps, free tiles); thin UI notebook; `build_health_db` CLI wrapper.
+- Taller map (default ~820px); start/end place reverse-geocode (Nominatim + cache).
+- PR **#19**: materialise `route_places` in DuckDB; `just geocode-places`; `list-walks` joins places.
+
+### 2026-09-05 — Photos.sqlite preprocess + walk stories direction
+
+- DuckDB **`ATTACH` Photos.sqlite** (read-only) works; ~200k `ZASSET` rows; join to `routes` on time window is fast vs full osxphotos library open.
+- Cocoa date offset (`+ 978307200`) required for correct `taken_at`.
+- Derivatives JPEGs under `resources/derivatives/` are good map thumbs (originals often HEIC / iCloud-off-machine).
+- In progress on `feat/walk-stories-photos`: `photos.py`, `just photos-for-walks`, `walk_photos` table, Folium photo layer — toward an elegant marimo walk-stories app (map + filmstrip).
+- Parallel: DuckDB 2.0-alpha build notes (parseable metadata version; absolute LOAD paths); keep stable default pin for day-to-day.
+
+### Blog angle update
+
+Still a **scanner** story — but the sequel is **local product loop**: export → DB → places → photos → map, all offline, helpers testable without marimo.
+

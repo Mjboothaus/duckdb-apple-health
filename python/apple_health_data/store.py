@@ -107,6 +107,14 @@ class HealthDataStore:
         ).fetchone()[0]
         if has_places:
             parts.append("SELECT 'route_places', count(*) FROM route_places")
+        has_photos = con.execute(
+            """
+            SELECT count(*)::BIGINT FROM information_schema.tables
+            WHERE table_schema IN ('main', 'gps') AND table_name = 'walk_photos'
+            """
+        ).fetchone()[0]
+        if has_photos:
+            parts.append("SELECT 'walk_photos', count(*) FROM walk_photos")
         return con.execute(" UNION ALL ".join(parts)).df()
 
     def manifest(self) -> pd.DataFrame:
@@ -196,6 +204,52 @@ class HealthDataStore:
             {having}
             ORDER BY r.workout_start_date DESC NULLS LAST
             LIMIT {limit}
+            """
+        ).df()
+
+
+    def photos_for_gpx(self, gpx_paths: Iterable[str] | None = None) -> pd.DataFrame:
+        """Return walk_photos rows (empty frame if table missing)."""
+        con = self.connect()
+        exists = con.execute(
+            """
+            SELECT count(*)::BIGINT FROM information_schema.tables
+            WHERE table_schema IN ('main', 'gps') AND table_name = 'walk_photos'
+            """
+        ).fetchone()[0]
+        if not exists:
+            return pd.DataFrame(
+                columns=[
+                    "photo_id",
+                    "gpx_path",
+                    "taken_at",
+                    "snap_lat",
+                    "snap_lon",
+                    "thumb_path",
+                    "match_quality",
+                    "distance_m",
+                ]
+            )
+        if gpx_paths is None:
+            return con.execute(
+                """
+                SELECT photo_id, gpx_path, taken_at, photo_lat, photo_lon,
+                       snap_lat, snap_lon, distance_m, match_quality, thumb_path
+                FROM walk_photos
+                ORDER BY gpx_path, taken_at
+                """
+            ).df()
+        paths = [p for p in gpx_paths if p]
+        if not paths:
+            return pd.DataFrame()
+        in_gpx = ", ".join(f"'{_sql_str(p)}'" for p in paths)
+        return con.execute(
+            f"""
+            SELECT photo_id, gpx_path, taken_at, photo_lat, photo_lon,
+                   snap_lat, snap_lon, distance_m, match_quality, thumb_path
+            FROM walk_photos
+            WHERE gpx_path IN ({in_gpx})
+            ORDER BY gpx_path, taken_at
             """
         ).df()
 
