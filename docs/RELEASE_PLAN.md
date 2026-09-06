@@ -127,15 +127,15 @@ Do **not** put Python inside the C extension binary. Do **not** block the core r
 
 ### 1.1 Correctness freeze
 
-- [ ] `just bootstrap` / `just debug` on clean clone  
-- [ ] `just pytest-ext` + SQLLogic green  
-- [ ] README TF matrix complete and accurate  
+- [x] `just bootstrap` / `just debug` on clean clone  
+- [x] `just pytest-ext` + SQLLogic green (freeze 2026-09-06)  
+- [x] README TF matrix complete and accurate  
 - [ ] Fixture golden + Correlation/top-level semantics documented  
 - [ ] Optional real-export smoke documented (not required in CI)  
 
 ### 1.2 Packaging (unsigned is acceptable for this persona)
 
-- [ ] Tag **v0.1.0**  
+- [ ] Tag **v0.1.0** (after this release PR merges)  
 - [ ] osx_arm64 build instructions; optional CI artifact  
 - [ ] QUICKSTART = Rungs 1–2 only  
 - [ ] CHANGELOG + RELEASE_NOTES: core vs Python add-ons  

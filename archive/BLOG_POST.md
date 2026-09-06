@@ -23,7 +23,7 @@ No MCP server. No dashboard. No dbt package. A scanner.
 | Language | **C** — parser and zip code never `#include` DuckDB headers |
 | ABI | DuckDB **stable C API** only (`USE_UNSTABLE_C_API=0`) |
 | Load path | **Unsigned** until 2.0 GA + community C‑API CI |
-| Out of v0.1 | Wasm, routes/GPX, ECG, clinical records, community `INSTALL` |
+| Out of v0.1.0 core | Wasm, ECG table, Correlation table, community `INSTALL` (see CREATE_COMM_EXT) |
 
 Privacy was a design constraint from day one: synthetic fixtures only in git, no network I/O in the extension, no real exports in CI.
 
@@ -232,3 +232,51 @@ Privacy still holds: real exports, Photos library, geocode cache, and thumbs sta
 - Progress log: `archive/BLOG_PROGRESS.md`
 
 Built gate‑by‑gate on a MacBook (Apple Silicon) in one focused day for v0.1 — then extended into a local map/photos product loop without abandoning the scanner model.
+
+
+---
+
+## Progress update — v0.1.0 core freeze (2026-09-06)
+
+### Where we landed
+
+The **core DuckDB extension** is freeze-ready as **v0.1.0** (Layer A). Same monorepo still holds optional Python add-ons (`health-data-store`, maps, walk-stories); those are **not** the extension binary and do not gate this tag.
+
+### Table functions (shipped)
+
+| Function | Notes |
+|----------|--------|
+| `read_apple_health` | Top-level records; zip / dir / xml |
+| `apple_health_workouts` | Workouts |
+| `apple_health_activity_summaries` | Daily rings (move minutes + move time columns) |
+| `apple_health_workout_routes` | Route metadata + `gpx_path` |
+| `apple_health_workout_route_points` | GPX track points |
+
+### Verification on freeze
+
+- SQLLogic (`just test`): **3/3 SUCCESS** (`apple_health`, `workouts`, `activity_summaries`)
+- pytest (`just pytest-ext`): **17 passed, 1 skipped** (real-export optional)
+- Load path: **unsigned** `duckdb -unsigned` + local `.duckdb_extension`
+- Docs: README status **v0.1.0**, [RELEASE_NOTES](../docs/RELEASE_NOTES.md), [CREATE_COMM_EXT.md](../docs/CREATE_COMM_EXT.md) for community `INSTALL` later
+
+### Design honesty (unchanged)
+
+Raw XML remains a **scan**; Parquet / local DuckDB is the **fast path**. Bind-time buffering and multi-GB RAM still apply on full loads — materialise early.
+
+### What we did *not* wait for
+
+- Community `INSTALL apple_health FROM community` (C-API community CI + descriptor PR — documented, not blocking)
+- Streaming execute / named `types`/`start`/`end` pushdown (post-v0.1 performance)
+- Python maps / Photos / journeys maturity (Layer B/C optional)
+
+### Repo story
+
+Public **Mjboothaus/duckdb-apple-health**, Apache-2.0, no DataBooth branding. Companion package name **health-data-store** (import `health_data_store`). Walk-stories marimo app is experimental UX on top of the same local DB, not required for SQL unlock.
+
+### Next after the tag
+
+1. Push git tag **`v0.1.0`** and rebuild so extension metadata shows SemVer (not a bare commit hash)  
+2. Optional GitHub Release unsigned binary (`osx_arm64`)  
+3. When ready: community-extensions `description.yml` PR ([CREATE_COMM_EXT.md](../docs/CREATE_COMM_EXT.md))  
+4. Continue add-ons / performance without blocking core users  
+

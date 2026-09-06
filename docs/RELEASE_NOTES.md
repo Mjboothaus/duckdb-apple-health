@@ -1,85 +1,59 @@
 # Release notes
 
-## v0.1.0-beta — 2026-08-29
+## v0.1.0 — core extension (2026-09-06)
 
-First public **developer beta** (`v0.1.0-beta`) of `duckdb-apple-health`: a DuckDB **scanner** for Apple Health exports, written in **C** on the **stable C API**.
+**Layer A freeze.** First numbered core release of the DuckDB Apple Health **scanner** (C, stable C API).
 
-### Highlights
+### Table functions
 
-- **`read_apple_health(path)`** — stream HealthKit `Record` rows into SQL  
-  - Columns: `type`, `type_short`, `unit`, `value`, `value_text`, `start_date`, `end_date`, `creation_date`, `source_name`, `source_version`, `device`, `filename`  
-  - Dates as **`TIMESTAMPTZ`** (Apple `yyyy-MM-dd HH:mm:ss Z` offsets honoured)  
-  - Numeric vs category split (`value` / `value_text`)
-- **`apple_health_workouts(path)`** — activity type, duration, distance, energy, dates, source/device  
-- **`apple_health_activity_summaries(path)`** — daily rings; both legacy `appleMoveMinutes*` and iOS 14+ `appleMoveTime*`  
-- **Paths:** `.zip` (member ending in `export.xml`), directory containing `export.xml`, or bare XML  
-- **Local only:** no network I/O, no telemetry; synthetic fixtures in-repo (no real exports in git)  
-- **Load:** unsigned `.duckdb_extension` (not on community `INSTALL` yet)
+| Function | Role |
+|----------|------|
+| `read_apple_health(path)` | Top-level Health records |
+| `apple_health_workouts(path)` | Workouts |
+| `apple_health_activity_summaries(path)` | Daily activity rings |
+| `apple_health_workout_routes(path)` | WorkoutRoute + FileReference (`gpx_path`) |
+| `apple_health_workout_route_points(path)` | GPX track points |
 
-### Build & try
+`path` may be `export.zip`, a directory containing `export.xml`, or `export.xml`.
+
+### Install / load
 
 ```bash
-git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
-cd duckdb-apple-health
-just configure && just debug
-just demo
-just demo-workouts
-just demo-summaries
+just bootstrap   # or: just configure && just debug && just fixture
+duckdb -unsigned
 ```
 
 ```sql
--- duckdb -unsigned
 LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
 FROM read_apple_health('test/data/export.zip');
 ```
 
-Explore interactively (optional):
+Community `INSTALL apple_health FROM community` is **not** available yet. Migration plan: [CREATE_COMM_EXT.md](CREATE_COMM_EXT.md).
 
-```bash
-uv sync
-uv run marimo edit notebooks/explore_export.py
-```
+### Correctness (freeze)
 
-### Correctness
+- SQLLogic: `test/sql/apple_health.test`, `workouts.test`, `activity_summaries.test` — **PASS**
+- pytest: `tests/test_extension_smoke.py`, `tests/test_compare_healthkit_to_sqlite.py` — **17 passed, 1 skipped** (real-export optional)
+- Semantics: top-level `<Record>` only; nested Correlation children skipped
 
-- Fixture **golden CSV** (7 top-level records) matched by CLI and extension  
-- **pytest** suite: smoke/golden + comparison to [`healthkit-to-sqlite`](https://github.com/dogsheep/healthkit-to-sqlite)  
-- **Semantic note:** we emit **top-level** `<Record>` only; `healthkit-to-sqlite` also counts `Record` children of `<Correlation>`. Tests document the +2 nested BP rows on the fixture.  
-- Manual real-export smoke (offline): multi-million-row zip, workouts and activity summaries load; keep personal zips outside the repo  
-- **Post-beta zip fix (unreleased):** complete DEFLATE inflate for data-descriptor zips so `.zip` and bare `export.xml` agree on record counts (see [CHANGELOG.md](../CHANGELOG.md) / [ROADMAP.md](ROADMAP.md)).  
+### Limits (intentional for v0.1.0)
 
-```bash
-just pytest-ext
-# optional:
-# just pytest-ext-real export_zip=/path/to/export.zip
-```
+- Parse largely in **bind**; RAM can track export size on full loads
+- Prefer materialise: `COPY … TO parquet` or optional `just build-db` (Python add-on)
+- No named `types` / `start` / `end` parameters yet
+- Platforms proven: macOS Apple Silicon; multi-arch CI artifacts optional
+- DuckDB **1.5.x** unsigned C-API load; **2.0** remains strategic
 
-### Performance (preview honesty)
+### Not this release (add-ons)
 
-v0.1 parses in **bind** and buffers rows; zip members are inflated to a temp file first. Fine for fixtures and one-shot `COPY` to Parquet; heavy for repeated full scans of multi-GB exports. **Parquet after first filter is the intended fast path.** Streaming execute + filter pushdown are on the [roadmap](ROADMAP.md).
+Optional same-repo Python package **`health-data-store`**, maps, Photos, journeys, marimo walk-stories — **not** part of the extension binary. See [PYTHON_PACKAGE.md](PYTHON_PACKAGE.md), [PERSONA.md](PERSONA.md).
 
-### Not in v0.1
+### Upgrade from v0.1.0-beta
 
-- `INSTALL apple_health FROM community`  
-- Named `types` / `start` / `end` parameters  
-- Workout GPS routes, ECG, clinical records  
-- Wasm  
-- Progress bar inside DuckDB bind  
-- Watch vs iPhone dedupe  
+Same SQL surface plus routes/route_points already on main before tag. Tag **v0.1.0** pins extension metadata via git tag ([VERSIONING.md](VERSIONING.md)).
 
-### Compatibility
+---
 
-- Developed/tested on **macOS Apple Silicon** (`osx_arm64`)  
-- DuckDB **1.5.x** CLI loaded the unsigned C-API binary in testing; **2.0** remains the strategic target (see [ROADMAP.md](ROADMAP.md))  
-- Template metadata still pins extension API **v1.2.0** / `C_STRUCT` via `extension-template-c`  
+## v0.1.0-beta (2026-08-29)
 
-### Licence
-
-Apache-2.0 — [mjboothaus](https://github.com/mjboothaus)
-
-### Links
-
-- Repository: https://github.com/mjboothaus/duckdb-apple-health  
-- Build diary: [archive/BLOG_POST.md](../archive/BLOG_POST.md)  
-- Roadmap (incl. DuckDB 2.0 community install): [ROADMAP.md](ROADMAP.md)
-- Changelog: [CHANGELOG.md](../CHANGELOG.md)  
+Developer preview: records, workouts, activity summaries; fixture golden; unsigned load. Superseded by **v0.1.0**.

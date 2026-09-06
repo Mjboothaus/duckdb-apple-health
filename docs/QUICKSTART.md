@@ -1,6 +1,6 @@
 # Quick start
 
-**v0.1.0-beta** — local unsigned build of the Apple Health scanner.
+**v0.1.0** — local unsigned build of the Apple Health scanner.
 
 ## 1. Export from the Health app
 

@@ -28,7 +28,7 @@ Why this exists: `webbed` is generic XML; `healthkit-to-sqlite` is a batch conve
 | Language | C (parser/zip free of DuckDB headers) |
 | ABI | DuckDB 2.0 stable C API only |
 | Load path | Unsigned until 2.0 GA + community C-API CI |
-| Out of v0.1 | Wasm, routes/GPX, ECG, clinical records, community INSTALL |
+| Out of v0.1.0 core | Wasm, ECG table, community INSTALL (doc path ready) |
 
 ### Fixture design (already good story material)
 
@@ -268,3 +268,9 @@ just demo-summaries → two rows with old/new move attrs
 
 Still a **scanner** story — but the sequel is **local product loop**: export → DB → places → photos → map, all offline, helpers testable without marimo.
 
+## v0.1.0 core freeze (2026-09-06)
+
+- SQLLogic 3/3 PASS; pytest-ext 17 passed / 1 skipped
+- TF surface includes routes + route_points
+- Docs: RELEASE_NOTES v0.1.0, CREATE_COMM_EXT, README status bump
+- Tag `v0.1.0` pending push after this release PR lands on main
