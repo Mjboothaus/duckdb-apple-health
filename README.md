@@ -1,8 +1,8 @@
 # duckdb-apple-health
 
-**v0.1.0-beta** (developer preview) — Apple Health exports → DuckDB SQL, in-process.
+**v0.1.0** — Apple Health exports → DuckDB SQL, in-process (core extension release).
 
-A DuckDB **scanner** extension that turns an Apple Health `export.zip` / `export.xml` into typed tables. Written in **C** on the **stable C API**. Load **unsigned** (not in the community repository yet).
+A DuckDB **scanner** extension that turns an Apple Health `export.zip` / `export.xml` into typed tables. Written in **C** on the **stable C API**. Load **unsigned** for now ([community INSTALL path](docs/CREATE_COMM_EXT.md)).
 
 Data never leaves the process. This repository contains **no real Health exports**.
 
@@ -56,15 +56,15 @@ This project fills the gap between those: **HealthKit-aware, in-process SQL** ai
 - Stable C ABI so the binary is not rebuilt for every DuckDB patch
 - Optional **Python add-ons** (local DB, maps, Photos, journeys) — not required to unlock data in SQL
 
-## Status (beta)
+## Status (v0.1.0)
 
 | | |
 |---|---|
-| Version | **v0.1.0-beta** |
-| Install | Local unsigned `LOAD` only |
+| Version | **v0.1.0** |
+| Install | Local unsigned `LOAD` (community `INSTALL` not yet — see [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md)) |
 | Platforms proven | macOS Apple Silicon (`osx_arm64`) |
 | DuckDB | Tested with **1.5.x** unsigned C-API load; **2.0** is the strategic target ([ROADMAP.md](docs/ROADMAP.md)) |
-| Correctness | Fixture golden + pytest vs `healthkit-to-sqlite` (top-level record semantics) |
+| Correctness | SQLLogic + fixture golden + pytest vs `healthkit-to-sqlite` (top-level records) — green on freeze |
 | Limits | Parse currently buffers in bind (RAM ∝ export size); named `types`/`start`/`end` filters not shipped yet |
 
 See [RELEASE_NOTES.md](docs/RELEASE_NOTES.md) and [ROADMAP.md](docs/ROADMAP.md).
@@ -139,7 +139,9 @@ Activity type, duration, distance, energy, dates, source/device.
 
 ### `apple_health_workout_routes(path)` — **implemented**
 
-Route metadata + `gpx_path` (`FileReference`) with parent workout type/dates for joins. ### `apple_health_workout_route_points(path)` — **implemented**
+Route metadata + `gpx_path` (`FileReference`) with parent workout type/dates for joins.
+
+### `apple_health_workout_route_points(path)` — **implemented**
 
 GPX `trkpt` rows: lat/lon/ele/time, optional speed/course/h_acc/v_acc, joined to parent workout via route metadata.
 
@@ -147,11 +149,13 @@ GPX `trkpt` rows: lat/lon/ele/time, optional speed/course/h_acc/v_acc, joined to
 
 Daily rings. Both `appleMoveMinutes*` (older) and `appleMoveTime*` (iOS 14+) as nullable columns.
 
-### Not in v0.1
+### Not in v0.1.0 core
 
-ECG, `ClinicalRecord`, Correlation as a table, Wasm, community `INSTALL`, Watch/iPhone dedupe.
+ECG as a first-class table, Correlation as a table, Wasm, community `INSTALL`, Watch/iPhone dedupe, named `types`/`start`/`end` pushdown, streaming execute.
 
 **Semantics:** top-level `<Record>` only — nested Correlation children are skipped (see [DESIGN.md](docs/DESIGN.md) and tests).
+
+**Optional add-ons** (same repo, not required to use the extension): local DuckDB via `just build-db`, maps/photos/journeys — see [PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md).
 
 ## Tests
 

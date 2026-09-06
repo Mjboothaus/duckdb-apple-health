@@ -216,3 +216,11 @@ uv-sync:
 # Optional: just web-thumbs journey_id=camino-del-norte
 web-thumbs journey_id="":
     uv run --project . python scripts/build_web_thumbs.py {{journey_id}}
+
+# Extension pytest (fixture golden + healthkit-to-sqlite). Builds debug if missing.
+pytest-ext: ensure-ext fixture
+    uv run --project . --extra dev --group dev pytest tests/test_extension_smoke.py tests/test_compare_healthkit_to_sqlite.py -q
+
+# Optional slow real-export compare (path outside repo)
+pytest-ext-real export_zip: ensure-ext
+    APPLE_HEALTH_EXPORT_ZIP={{export_zip}} uv run --project . --extra dev --group dev pytest tests/test_compare_healthkit_to_sqlite.py -q -k real
