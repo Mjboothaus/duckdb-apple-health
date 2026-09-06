@@ -74,6 +74,7 @@ brew install cmake python ninja ccache just
 git clone --recurse-submodules git@github.com:DataBooth/duckdb-apple-health.git
 cd duckdb-apple-health
 just bootstrap   # or: just configure && just debug
+just debug-alpha   # DuckDB 2.0-alpha headers + CLI (see docs/ROADMAP.md)
 ```
 
 Extension binary (either path works after debug):

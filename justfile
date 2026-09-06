@@ -4,9 +4,10 @@
 #
 #   just              # list recipes
 #   just bootstrap    # configure (if needed) + debug + fixture
-#   just debug
+#   just debug / just debug-alpha   # stable C API; 2.0-alpha headers+CLI
 #   just pytest-ext   # builds debug extension when missing
-#   just demo         # unsigned LOAD + fixture scan
+#   just demo         # unsigned LOAD + fixture scan (set DUCKDB=… for alpha CLI)
+#   just duckdb-alpha # interactive shell with alpha CLI if installed
 #   just build-db export_zip=/path/to/export.zip
 #   just map-walks    # map from output/apple_health.duckdb
 #   just geocode-places          # fill route_places (Nominatim)
@@ -16,7 +17,8 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 set dotenv-load := false
 
 python := env_var_or_default("PYTHON", "python3")
-duckdb := env_var_or_default("DUCKDB", "duckdb")
+# DuckDB CLI: override with DUCKDB=/path/to/duckdb. Default prefers 2.x alpha install if present.
+duckdb := env_var_or_default("DUCKDB", if path_exists(home_directory() / ".duckdb/cli/latest/duckdb") == "true" { home_directory() / ".duckdb/cli/latest/duckdb" } else { "duckdb" })
 gen    := env_var_or_default("GEN", "ninja")
 
 ext_debug   := "build/debug/extension/apple_health/apple_health.duckdb_extension"
@@ -63,6 +65,18 @@ configure: need-template
 debug: need-template
     GEN={{gen}} make debug
 
+# Fetch DuckDB 2.0-alpha (cyanoptera) C API headers and rebuild debug extension.
+# Metadata uses parseable TARGET_DUCKDB_VERSION (default v1.5.6). Requires alpha-capable CLI to LOAD.
+debug-alpha: need-template
+    GEN={{gen}} make debug-alpha
+
+# Interactive unsigned shell using preferred duckdb CLI (alpha if installed).
+duckdb-alpha: fixture ensure-ext
+    @echo "Using: {{duckdb}}"
+    @{{duckdb}} -c "SELECT version() AS duckdb_version;"
+    {{duckdb}} -unsigned -cmd "LOAD '{{justfile_directory()}}/{{ext_debug}}';"
+
+
 # Build release extension binary.
 release: need-template
     GEN={{gen}} make release
@@ -97,14 +111,14 @@ clean:
 
 # Interactive unsigned shell with the extension loaded when the binary exists.
 duckdb: fixture ensure-ext
-    {{duckdb}} -unsigned -cmd "LOAD '{{ext_debug}}';"
+    {{duckdb}} -unsigned -cmd "LOAD '{{justfile_directory()}}/{{ext_debug}}';"
 
 # One-shot scan of the synthetic zip.
 demo: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT type_short, unit, value, value_text, start_date FROM read_apple_health('test/data/export.zip') ORDER BY start_date, type_short;"
+    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT type_short, unit, value, value_text, start_date FROM read_apple_health('test/data/export.zip') ORDER BY start_date, type_short;"
 
 demo-xml: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT count(*) AS n FROM read_apple_health('test/data/export.xml');"
+    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT count(*) AS n FROM read_apple_health('test/data/export.xml');"
 
 # Streaming parser CLI (no DuckDB). Builds if missing. Accepts xml/zip/dir.
 parse-cli path="test/data/export.xml": fixture
@@ -118,10 +132,10 @@ parse-cli-dir: fixture
     @just parse-cli test/data
 
 demo-workouts: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT activity_type_short, duration, total_distance, total_energy FROM apple_health_workouts('test/data/export.zip');"
+    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT activity_type_short, duration, total_distance, total_energy FROM apple_health_workouts('test/data/export.zip');"
 
 demo-routes: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{ext_debug}}'; SELECT workout_activity_type_short, gpx_path, source_name FROM apple_health_workout_routes('test/data/export.zip');"
+    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT workout_activity_type_short, gpx_path, source_name FROM apple_health_workout_routes('test/data/export.zip');"
 
 
 

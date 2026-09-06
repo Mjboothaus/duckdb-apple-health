@@ -6,6 +6,9 @@ Versioning: early **0.x** beta tags; breaking changes allowed until 1.0.
 
 ## [Unreleased]
 
+### Changed
+- Target DuckDB **2.0-alpha** C API headers (`v2.0-cyanoptera`) with extension metadata `v1.5.6`; `just debug-alpha` / alpha CLI support.
+
 ### Added
 
 - `apple_health_workout_routes(path)` — WorkoutRoute + FileReference `gpx_path` with parent workout type/dates for joins
