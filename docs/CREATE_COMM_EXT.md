@@ -10,8 +10,9 @@ INSTALL apple_health FROM community;
 LOAD apple_health;
 ```
 
-It is **not** a commitment that community install ships with v0.1.0. It is the migration
-path once gates are green.
+It is **not** a commitment that community install ships on day one of v0.1.0. The intent is to
+submit **soon after** the core freeze, starting with **macOS** (`osx_arm64` / Apple Silicon),
+then widen platforms as CI allows. This doc is the migration path once gates are green.
 
 Related: [DESIGN.md](DESIGN.md) · [RELEASE_PLAN.md](RELEASE_PLAN.md) Phase 1 · [VERSIONING.md](VERSIONING.md) · [ROADMAP.md](ROADMAP.md).
 
