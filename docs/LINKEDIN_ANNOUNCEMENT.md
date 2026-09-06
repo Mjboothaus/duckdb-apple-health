@@ -35,7 +35,7 @@ Status: early **v0.1**, load **unsigned**, not in the community repo yet.
 
 We’re targeting the **DuckDB 2.0** stable C-API extension path for community `INSTALL` when 2.0 GA + C-API CI land — details in `ROADMAP.md` (streaming execute, filter pushdown, and packaging). Built for people who already live in DuckDB and want Health data there too.
 
-Repo: https://github.com/DataBooth/duckdb-apple-health
+Repo: https://github.com/mjboothaus/duckdb-apple-health
 
 Write‑up: `../archive/BLOG_POST.md` · Roadmap (DuckDB 2.0): `ROADMAP.md` · Release notes: `RELEASE_NOTES.md`
 
@@ -53,7 +53,7 @@ FROM read_apple_health('export.zip');
 
 Synthetic fixtures in git; your real export never has to leave the laptop. v0.1 — records, workouts, activity rings; Parquet for repeat queries.
 
-https://github.com/DataBooth/duckdb-apple-health
+https://github.com/mjboothaus/duckdb-apple-health
 
 ---
 

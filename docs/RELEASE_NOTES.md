@@ -19,7 +19,7 @@ First public **developer beta** (`v0.1.0-beta`) of `duckdb-apple-health`: a Duck
 ### Build & try
 
 ```bash
-git clone --recurse-submodules git@github.com:DataBooth/duckdb-apple-health.git
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
 cd duckdb-apple-health
 just configure && just debug
 just demo
@@ -75,11 +75,11 @@ v0.1 parses in **bind** and buffers rows; zip members are inflated to a temp fil
 
 ### Licence
 
-Apache-2.0 — [DataBooth](https://www.databooth.com.au)
+Apache-2.0 — [mjboothaus](https://github.com/mjboothaus)
 
 ### Links
 
-- Repository: https://github.com/DataBooth/duckdb-apple-health  
+- Repository: https://github.com/mjboothaus/duckdb-apple-health  
 - Build diary: [archive/BLOG_POST.md](../archive/BLOG_POST.md)  
 - Roadmap (incl. DuckDB 2.0 community install): [ROADMAP.md](ROADMAP.md)
 - Changelog: [CHANGELOG.md](../CHANGELOG.md)  

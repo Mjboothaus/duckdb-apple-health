@@ -67,6 +67,9 @@ Get to a **reviewable first release** with three clear layers:
 
 ## Versioning proposal
 
+Details and release checklist: [VERSIONING.md](VERSIONING.md) (root `VERSION`, extension git tag metadata, `pyproject.toml`).
+
+
 | Tag | Meaning |
 |-----|---------|
 | **v0.1.0** | **Core extension** release (Layer A solid); B minimally documented; C optional/experimental |

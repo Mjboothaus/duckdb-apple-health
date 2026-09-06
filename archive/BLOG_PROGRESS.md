@@ -110,7 +110,7 @@ justfile bug: `if path_exists(x)` is invalid; must be `if path_exists(x) == "tru
 
 ### 2026-08-29 — Intake
 
-- Cloned / pulled `DataBooth/duckdb-apple-health` on `main` (`f31dcad`).
+- Cloned / pulled `mjboothaus/duckdb-apple-health` on `main` (`f31dcad`).
 - Read `docs/DESIGN.md`, `README.md`, `docs/DESIGN.md`, `QUICKSTART.md`, `justfile`, `scripts/make_fixture.py`.
 - Confirmed fixture semantics vs golden CSV (7 records).
 - Started this progressive record for a later `BLOG_POST.md`.

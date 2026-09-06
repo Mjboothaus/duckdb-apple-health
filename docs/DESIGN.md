@@ -33,7 +33,7 @@ Not a warehouse, MCP server, dashboard, or dbt package.
 
 | Topic | Decision |
 |---|---|
-| GitHub | Public `DataBooth/duckdb-apple-health` (not the old personal C++ stub) |
+| GitHub | Public `mjboothaus/duckdb-apple-health` (not the old personal C++ stub) |
 | Licence | Apache-2.0 |
 | Language | **C.** Thin C++ only if the stable table-function C API is unusable |
 | ABI | Stable C API. No `#include <duckdb.hpp>`, no unstable extension internals |

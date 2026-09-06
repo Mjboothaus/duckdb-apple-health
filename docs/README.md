@@ -9,6 +9,7 @@
 | [RELEASE_NOTES.md](RELEASE_NOTES.md) | Shipped beta notes |
 | [PERSONA.md](PERSONA.md) | Who it’s for + onboarding ladder (Rungs 0–5) |
 | [RELEASE_PLAN.md](RELEASE_PLAN.md) | Initial release: core / local DB / add-ons |
+| [VERSIONING.md](VERSIONING.md) | Extension + Python SemVer and release tags |
 | [LINKEDIN_ANNOUNCEMENT.md](LINKEDIN_ANNOUNCEMENT.md) | Public announcement draft |
 
 Repo root keeps `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, and `SECURITY.md` (GitHub conventions).

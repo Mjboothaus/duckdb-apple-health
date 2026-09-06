@@ -71,7 +71,7 @@ brew install cmake python ninja ccache just
 ## Build (local, unsigned)
 
 ```bash
-git clone --recurse-submodules git@github.com:DataBooth/duckdb-apple-health.git
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
 cd duckdb-apple-health
 just bootstrap   # or: just configure && just debug
 just debug-alpha   # DuckDB 2.0-alpha headers + CLI (see docs/ROADMAP.md)
@@ -165,7 +165,7 @@ just map-walks
 
 ## Licence
 
-Apache-2.0. Maintained by [DataBooth](https://www.databooth.com.au).
+Apache-2.0. Maintained by [mjboothaus](https://github.com/mjboothaus).
 
 ## Related
 

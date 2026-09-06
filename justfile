@@ -1,4 +1,4 @@
-# DataBooth/duckdb-apple-health
+# mjboothaus/duckdb-apple-health
 # Portable workflows (bash). Makefile remains the source of truth for CMake /
 # extension metadata; this file is the developer front door.
 #
@@ -48,6 +48,15 @@ check-tools:
 # ── fixtures (Python only) ──────────────────────────────────────────────────
 
 # Write test/data/export.xml, export.zip, and golden CSVs.
+
+# Show product / extension / Python versions (see docs/VERSIONING.md).
+version:
+    {{python}} scripts/version_sync.py
+
+# Write root VERSION into pyproject.toml [project].version.
+version-sync:
+    {{python}} scripts/version_sync.py --sync
+
 fixture:
     {{python}} scripts/make_fixture.py
 

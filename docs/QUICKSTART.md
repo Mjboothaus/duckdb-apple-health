@@ -17,7 +17,7 @@ Multi-GB zips are normal. **Do not commit a real export to git.**
 Needs Xcode CLT, CMake, Python 3, and a DuckDB CLI that can load unsigned extensions (1.5+ works in testing; 2.0 is the target).
 
 ```bash
-git clone --recurse-submodules git@github.com:DataBooth/duckdb-apple-health.git
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
 cd duckdb-apple-health
 brew install cmake ninja ccache just
 just check-tools

@@ -1,10 +1,10 @@
 # From Health export to SQL: building a DuckDB scanner in C
 
-*DataBooth · August–September 2026 · Australian English*
+*mjboothaus · August–September 2026 · Australian English*
 
 Apple’s Health app will cheerfully hand you a multi‑gigabyte `export.zip`. Getting that into a place where you can ask ordinary SQL questions — without a Python ETL job, without shipping PHI to a warehouse, and without rebuilding an extension for every DuckDB patch — is still awkward.
 
-This post is the build diary for [`DataBooth/duckdb-apple-health`](https://github.com/DataBooth/duckdb-apple-health): a **DuckDB scanner** that turns `export.zip` / `export.xml` into typed tables, written in **C** against the **stable C API**.
+This post is the build diary for [`mjboothaus/duckdb-apple-health`](https://github.com/mjboothaus/duckdb-apple-health): a **DuckDB scanner** that turns `export.zip` / `export.xml` into typed tables, written in **C** against the **stable C API**.
 
 > Raw XML is a scan. Parquet is the fast path. That is intentional.
 
@@ -224,7 +224,7 @@ Privacy still holds: real exports, Photos library, geocode cache, and thumbs sta
 
 ## Credits and links
 
-- Repo: [DataBooth/duckdb-apple-health](https://github.com/DataBooth/duckdb-apple-health)
+- Repo: [mjboothaus/duckdb-apple-health](https://github.com/mjboothaus/duckdb-apple-health)
 - C‑API template: [duckdb/extension-template-c](https://github.com/duckdb/extension-template-c)
 - Implementation gates: `docs/DESIGN.md`
 - Data model: `docs/ERD.md`
