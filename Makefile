@@ -14,6 +14,8 @@ USE_UNSTABLE_C_API=0
 # Headers are refreshed from DUCKDB_HEADER_REF (branch/tag). DuckDB 2.0 alpha still exposes
 # stable C API 1.5.6 on the v2.0-cyanoptera branch — see docs/ROADMAP.md.
 # Override: make debug TARGET_DUCKDB_VERSION=v1.2.0 DUCKDB_HEADER_REF=v1.2.0
+# Keep in sync with .github/workflows/MainDistributionPipeline.yml duckdb_version.
+# Extension metadata embeds this as the C API version; CI tests must use a matching DuckDB.
 TARGET_DUCKDB_VERSION ?= v1.5.6
 DUCKDB_HEADER_REF ?= v2.0-cyanoptera
 
