@@ -87,6 +87,8 @@ Prefer **core first**, then add-ons maturity, so extension-only users are not bl
 
 Do **not** split the Python package to another GitHub repo until the extension is published (or blocked) and add-ons have standalone demand.
 
+Community install migration (descriptor, gates, monorepo vs split): [CREATE_COMM_EXT.md](CREATE_COMM_EXT.md).
+
 ## Python packaging decision (supplementary package)
 
 **Question:** are we wrapping the Python bits as a supplementary package?
