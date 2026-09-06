@@ -62,7 +62,7 @@ None required for docs/positioning. Feature work continues via normal branches.
 
 - Extension still bind-buffers full scans — **document honestly** (README performance section); optimise after v0.1  
 - Dual DuckDB 1.x / 2.0-alpha build incomplete  
-- Python still `package = false` (app-style uv project); treat as **supplementary package** (see below)  
+- Python still `package = true` (app-style uv project); treat as **supplementary package** (see below)  
 
 ## Versioning
 
@@ -75,6 +75,18 @@ Details and release checklist: [VERSIONING.md](VERSIONING.md) (root `VERSION`, e
 
 Prefer **core first**, then add-ons maturity, so extension-only users are not blocked on Photos/marimo.
 
+## Distribution strategy (extension vs Python)
+
+**One repo** for v0.1: C extension + `health-data-store` add-ons ([PYTHON_PACKAGE.md](PYTHON_PACKAGE.md)).
+
+| Artefact | Publish path | v0.1 |
+|----------|--------------|------|
+| Extension | Community `INSTALL apple_health FROM community` when C-API CI allows; until then unsigned `LOAD` / optional GH Release binaries | Core freeze + tag; community PR **after** gates |
+| Python | Editable `uv sync`; optional later PyPI `health-data-store[maps,…]` | Package structure yes; PyPI **not** required |
+| Marimo maps/stories | In-repo notebooks only | **Experimental** — not a release blocker |
+
+Do **not** split the Python package to another GitHub repo until the extension is published (or blocked) and add-ons have standalone demand.
+
 ## Python packaging decision (supplementary package)
 
 **Question:** are we wrapping the Python bits as a supplementary package?
@@ -85,10 +97,10 @@ Prefer **core first**, then add-ons maturity, so extension-only users are not bl
 |--|--|
 | **Role** | Layer B/C only: fixtures, pytest, `HealthDataStore`, `build-db`, maps, Photos, journeys, marimo |
 | **Not** | Required to `LOAD` the extension or run SQL table functions |
-| **Layout today** | `python/apple_health_data/` + root `pyproject.toml` with **`package = false`** (uv application / monorepo style) |
+| **Layout today** | `python/health_data_store/` + root `pyproject.toml` with **`package = true`** (uv application / monorepo style) |
 | **Version** | Same root **`VERSION`** / `just version-sync` as the extension line of sight ([VERSIONING.md](VERSIONING.md)) |
 | **v0.1.0** | Document the tree; keep `uv sync` working; **do not** require publish |
-| **Later** | Flip to an installable package (name TBD, e.g. `apple-health-data` or aligned with repo), optional extras (`maps`, `photos`, `notebooks`), then consider PyPI |
+| **Later** | Flip to an installable package (`health-data-store` or aligned with repo), optional extras (`maps`, `photos`, `notebooks`), then consider PyPI |
 
 Do **not** put Python inside the C extension binary. Do **not** block the core release on packaging polish.
 

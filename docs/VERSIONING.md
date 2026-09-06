@@ -7,7 +7,7 @@ This repo ships **two related artefacts** with coordinated SemVer:
 | Artefact | Where the version lives | What consumers see |
 |----------|-------------------------|-------------------|
 | **C extension** (`apple_health.duckdb_extension`) | Git **tag** at build time → `configure/extension_version.txt` → extension metadata | DuckDB `LOAD` metadata / `extension_version` field |
-| **Python supplementary package** (optional Layer B/C: `python/apple_health_data`, notebooks) | `pyproject.toml` `[project].version` and root **`VERSION`** file | `uv` / future pip metadata; docs. **Not** required to use the extension. v0.1 does **not** require PyPI. |
+| **Python supplementary package** (optional Layer B/C: `python/health_data_store`, notebooks) | `pyproject.toml` `[project].version` and root **`VERSION`** file | `uv` / future pip metadata; docs. **Not** required to use the extension. v0.1 does **not** require PyPI. |
 
 ## Source of truth
 
@@ -28,7 +28,7 @@ Helper: `just version` prints current values; `just version-sync` writes `VERSIO
 ## Supplementary Python package
 
 - **Purpose:** local DB, maps, Photos, journeys, tests — not the scan engine.
-- **Today:** root project uses uv with `package = false` (develop against the repo).
+- **Today:** root project uses uv with `package = true` (develop against the repo).
 - **v0.1.0:** ship docs + working `uv sync` / `just` recipes; no publish requirement.
 - **Later:** installable package + optional extras; keep SemVer aligned with root `VERSION` until a deliberate split.
 - Full product framing: [RELEASE_PLAN.md](RELEASE_PLAN.md) § Python packaging decision; [ROADMAP.md](ROADMAP.md).
@@ -55,21 +55,21 @@ Do **not** hand-edit `configure/extension_version.txt` for releases — it is ge
 
 ## Python package version
 
-`pyproject.toml` currently has `package = false` (app/tooling, not published to PyPI yet). Version still matters for:
+`pyproject.toml` currently has `package = true` (app/tooling, not published to PyPI yet). Version still matters for:
 
 - Reproducible `uv lock` / environment identity
-- Future optional publish of `apple_health_data` helpers
+- Future optional publish of `health_data_store` helpers
 - Aligning docs with “add-ons v0.1.0”
 
 Until publish:
 
 ```toml
 [project]
-name = "duckdb-apple-health-notebooks"
+name = "health-data-store"
 version = "0.1.0"   # must match VERSION
 ```
 
-When publishing later, prefer a clear name (e.g. `apple-health-data`) and the same SemVer as the extension **major.minor** where practical; patch may diverge if only Python changes.
+When publishing later, prefer a clear name (e.g. `health-data-store`) and the same SemVer as the extension **major.minor** where practical; patch may diverge if only Python changes.
 
 ## Layer alignment (see RELEASE_PLAN.md)
 

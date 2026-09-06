@@ -10,8 +10,8 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO / "python"))
 
-from apple_health_data import DEFAULT_DB_PATH, HealthDataStore  # noqa: E402
-from apple_health_data.journeys import create_journey, set_sections  # noqa: E402
+from health_data_store import DEFAULT_DB_PATH, HealthDataStore  # noqa: E402
+from health_data_store.journeys import create_journey, set_sections  # noqa: E402
 
 
 def main() -> None:

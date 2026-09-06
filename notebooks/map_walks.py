@@ -1,13 +1,4 @@
-# /// script
-# requires-python = ">=3.12"
-# dependencies = [
-#     "marimo>=0.13.0",
-#     "duckdb>=1.2.0",
-#     "pandas>=2.2.0",
-#     "folium>=0.20.0",
-# ]
-# ///
-"""Walk stories — map + photos UI (helpers live under python/apple_health_data/).
+"""Walk stories — map + photos UI (helpers live under python/health_data_store/).
 
 ```bash
 just build-db export_zip=/path/to/export.zip
@@ -34,8 +25,8 @@ def _():
     if _python not in sys.path:
         sys.path.insert(0, _python)
 
-    from apple_health_data import DEFAULT_DB_PATH, HealthDataStore, build_route_map
-    from apple_health_data.maps import filmstrip_html
+    from health_data_store import DEFAULT_DB_PATH, HealthDataStore, build_route_map
+    from health_data_store.maps import filmstrip_html
 
     return DEFAULT_DB_PATH, HealthDataStore, Path, build_route_map, filmstrip_html, mo
 
@@ -57,11 +48,14 @@ def _(DEFAULT_DB_PATH, mo):
     show_photos = mo.ui.checkbox(value=True, label="Show photo pins + filmstrip")
     map_height = mo.ui.slider(500, 1200, value=860, step=20, label="Map height", show_value=True)
     max_points = mo.ui.slider(
-        500, 20_000, value=6_000, step=500, label="Track points drawn", show_value=True
+        500, 12_000, value=5_000, step=500, label="Track points drawn", show_value=True
+    )
+    max_photos = mo.ui.slider(
+        0, 80, value=30, step=5, label="Photo pins (cap)", show_value=True
     )
     options = mo.accordion(
         {
-            "Options": mo.vstack([db_path, max_list, max_points, map_height]),
+            "Options": mo.vstack([db_path, max_list, max_points, max_photos, map_height]),
         }
     )
     controls = mo.vstack(
@@ -81,6 +75,7 @@ def _(DEFAULT_DB_PATH, mo):
         db_path,
         map_height,
         max_list,
+        max_photos,
         max_points,
         prefer_photos,
         show_photos,
@@ -219,6 +214,7 @@ def _(
     catalogue,
     filmstrip_html,
     map_height,
+    max_photos,
     max_points,
     mo,
     route_picker,
@@ -237,18 +233,23 @@ def _(
             photos = None
             if show_photos.value and not chosen.empty:
                 photos = store.photos_for_gpx(chosen["gpx_path"].tolist())
+            n_pin = int(max_photos.value)
             fmap, _drawn, status = build_route_map(
                 chosen,
                 pts,
                 max_total_points=int(max_points.value),
                 height=int(map_height.value),
                 photos=photos if show_photos.value else None,
+                max_photos=n_pin,
+                max_embed_bytes=100_000,
             )
             strip = ""
             if show_photos.value:
                 strip = filmstrip_html(
                     photos if photos is not None else None,
                     title="Along the way",
+                    max_items=min(24, max(n_pin, 12)),
+                    max_embed_bytes=80_000,
                 )
             if fmap is None:
                 stage = mo.md(status)
@@ -256,7 +257,7 @@ def _(
                 stage = mo.vstack(
                     [
                         mo.md(status),
-                        mo.Html(fmap._repr_html_()),
+                        mo.Html(fmap.get_root().render()),
                         mo.Html(strip) if strip else mo.md(""),
                     ]
                 )
@@ -280,7 +281,7 @@ def _(mo):
         just photos-for-walks -- --limit-walks 40
         just map-walks
         ```
-        Helpers: `python/apple_health_data/` · model: `docs/ERD.md`
+        Helpers: `python/health_data_store/` · model: `docs/ERD.md`
         """
     )
     return

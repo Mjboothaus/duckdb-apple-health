@@ -10,7 +10,7 @@ from typing import Iterable, Sequence
 import duckdb
 import pandas as pd
 
-# python/apple_health_data/ -> repo root
+# python/health_data_store/ -> repo root
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = _REPO_ROOT / "output" / "apple_health.duckdb"
 _EXT_CANDIDATES = [
@@ -228,7 +228,40 @@ class HealthDataStore:
 
         con = self._write_con()
         ensure_journey_tables(con)
-        return journey_sections_df(con, journey_id)
+        df = journey_sections_df(con, journey_id)
+        if df.empty:
+            return df
+        # One row per section (guard join fan-out)
+        if "section_index" in df.columns:
+            df = df.drop_duplicates(subset=["section_index"], keep="first")
+        elif "gpx_path" in df.columns:
+            df = df.drop_duplicates(subset=["gpx_path"], keep="first")
+        # Fill place chips from "Section N: Start → End" labels when route_places missing
+        def _split_label(lab: object) -> tuple[object, object]:
+            if lab is None or (isinstance(lab, float) and lab != lab):
+                return None, None
+            s = str(lab)
+            if "→" in s:
+                left, right = s.split("→", 1)
+                left = left.split(":", 1)[-1].strip() if ":" in left else left.strip()
+                return left or None, right.strip() or None
+            return None, None
+
+        if "start_place" not in df.columns:
+            df["start_place"] = None
+        if "end_place" not in df.columns:
+            df["end_place"] = None
+        for i, row in df.iterrows():
+            sp0, ep0 = row.get("start_place"), row.get("end_place")
+            need = sp0 is None or (isinstance(sp0, float) and sp0 != sp0) or str(sp0) in ("", "None", "nan")
+            need = need or ep0 is None or (isinstance(ep0, float) and ep0 != ep0) or str(ep0) in ("", "None", "nan")
+            if need and "section_label" in df.columns:
+                a, b = _split_label(row.get("section_label"))
+                if need and a:
+                    df.at[i, "start_place"] = a
+                if b:
+                    df.at[i, "end_place"] = b
+        return df
 
     def import_journey_manifest(self, path: Path | str):
         from .journeys import import_manifest
@@ -293,7 +326,7 @@ class HealthDataStore:
             return con.execute(
                 """
                 SELECT photo_id, gpx_path, taken_at, photo_lat, photo_lon,
-                       snap_lat, snap_lon, distance_m, match_quality, thumb_path
+                       snap_lat, snap_lon, distance_m, match_quality, thumb_path, full_path
                 FROM walk_photos
                 ORDER BY gpx_path, taken_at
                 """
@@ -305,7 +338,7 @@ class HealthDataStore:
         return con.execute(
             f"""
             SELECT photo_id, gpx_path, taken_at, photo_lat, photo_lon,
-                   snap_lat, snap_lon, distance_m, match_quality, thumb_path
+                   snap_lat, snap_lon, distance_m, match_quality, thumb_path, full_path
             FROM walk_photos
             WHERE gpx_path IN ({in_gpx})
             ORDER BY gpx_path, taken_at

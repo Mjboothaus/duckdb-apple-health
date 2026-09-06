@@ -18,6 +18,7 @@ _COCOA_UNIX_OFFSET = 978_307_200
 
 DEFAULT_PHOTOS_LIBRARY = Path.home() / "Pictures" / "Photos Library.photoslibrary"
 DEFAULT_THUMB_DIR = repo_root() / "output" / "photo_thumbs"
+DEFAULT_WEB_THUMB_DIR = repo_root() / "output" / "photo_web_thumbs"
 
 
 @dataclass
@@ -42,24 +43,40 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * r * math.asin(min(1.0, math.sqrt(a)))
 
 
-def find_derivative_jpeg(library: Path, directory: str, uuid: str) -> Path | None:
-    """Prefer small map-friendly JPEG derivatives from the Photos library."""
+def find_derivative_jpeg(
+    library: Path,
+    directory: str,
+    uuid: str,
+    *,
+    prefer: str = "thumb",
+) -> Path | None:
+    """Find a JPEG derivative from the Photos library.
+
+    prefer:
+      - "thumb": small UI/map filmstrip image
+      - "full": larger masters derivative for click/lightbox (not original HEIC)
+    """
     lib = Path(library)
     dir_s = str(directory)
-    candidates = [
+    small = [
         lib / "resources" / "derivatives" / dir_s / f"{uuid}_1_105_c.jpeg",
         lib / "resources" / "derivatives" / dir_s / f"{uuid}_1_105_c.jpg",
     ]
-    # masters derivative (larger)
+    large: list[Path] = []
     masters = lib / "resources" / "derivatives" / "masters" / dir_s
     if masters.is_dir():
-        for p in sorted(masters.glob(f"{uuid}_*_c.jpeg")):
-            candidates.append(p)
-        for p in sorted(masters.glob(f"{uuid}_*_c.jpg")):
-            candidates.append(p)
-    for p in candidates:
-        if p.is_file():
-            return p
+        large.extend(sorted(masters.glob(f"{uuid}_*_c.jpeg"), reverse=True))
+        large.extend(sorted(masters.glob(f"{uuid}_*_c.jpg"), reverse=True))
+    # also any other mid-size derivatives
+    mid_dir = lib / "resources" / "derivatives" / dir_s
+    if mid_dir.is_dir():
+        for pth in sorted(mid_dir.glob(f"{uuid}_*_c.jpeg"), reverse=True):
+            if pth not in small:
+                large.append(pth)
+    order = large + small if prefer == "full" else small + large
+    for pth in order:
+        if pth.is_file():
+            return pth
     return None
 
 
@@ -252,33 +269,195 @@ def export_thumbs(
     out_root.mkdir(parents=True, exist_ok=True)
 
     thumb_paths: list[str | None] = []
+    full_paths: list[str | None] = []
     copied = 0
     for row in matched.itertuples(index=False):
         uuid = str(row.photo_id)
         directory = str(row.directory) if pd.notna(getattr(row, "directory", None)) else ""
-        # slug from gpx basename
         gpx = str(row.gpx_path).strip("/").replace("/", "_")
         dest_dir = out_root / gpx
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / f"{uuid}.jpg"
+        dest_full = dest_dir / f"{uuid}_full.jpg"
+
+        # thumb
         if dest.is_file():
             thumb_paths.append(str(dest.relative_to(repo_root())))
-            continue
-        src = find_derivative_jpeg(lib, directory, uuid)
-        if src is None:
-            thumb_paths.append(None)
-            continue
-        try:
-            shutil.copy2(src, dest)
-            copied += 1
-            thumb_paths.append(str(dest.relative_to(repo_root())))
-        except OSError:
-            thumb_paths.append(None)
+        else:
+            src = find_derivative_jpeg(lib, directory, uuid, prefer="thumb")
+            if src is None:
+                thumb_paths.append(None)
+            else:
+                try:
+                    shutil.copy2(src, dest)
+                    copied += 1
+                    thumb_paths.append(str(dest.relative_to(repo_root())))
+                except OSError:
+                    thumb_paths.append(None)
+
+        # larger full for lightbox/click
+        if dest_full.is_file():
+            full_paths.append(str(dest_full.relative_to(repo_root())))
+        else:
+            src_f = find_derivative_jpeg(lib, directory, uuid, prefer="full")
+            if src_f is None:
+                # fall back to thumb path
+                full_paths.append(thumb_paths[-1])
+            else:
+                try:
+                    shutil.copy2(src_f, dest_full)
+                    copied += 1
+                    full_paths.append(str(dest_full.relative_to(repo_root())))
+                except OSError:
+                    full_paths.append(thumb_paths[-1])
 
     out = matched.copy()
     out["thumb_path"] = thumb_paths
+    out["full_path"] = full_paths
     out.attrs["thumbs_copied"] = copied
     return out
+
+
+
+
+def ensure_web_thumb(
+    source: Path | str,
+    *,
+    dest_dir: Path | str | None = None,
+    photo_id: str | None = None,
+    max_edge: int = 280,
+    jpeg_quality: int = 65,
+) -> Path | None:
+    """Create/return a small web JPEG for maps (cached on disk).
+
+    Source may be a Photos derivative or ``output/photo_thumbs/...`` copy.
+    Uses macOS ``sips`` when available (no Pillow required); otherwise copies
+    only if the source is already under ~80 KiB.
+
+    Cache layout: ``output/photo_web_thumbs/{photo_id}.jpg``
+    """
+    import subprocess
+
+    src = Path(source).expanduser()
+    if not src.is_file():
+        return None
+    root = repo_root()
+    out_root = Path(dest_dir or DEFAULT_WEB_THUMB_DIR)
+    out_root.mkdir(parents=True, exist_ok=True)
+    pid = photo_id or src.stem.replace("_full", "")
+    dest = out_root / f"{pid}.jpg"
+
+    # Fresh enough if exists and not older than source and small enough
+    if dest.is_file():
+        try:
+            if dest.stat().st_mtime >= src.stat().st_mtime and dest.stat().st_size > 0:
+                return dest
+        except OSError:
+            pass
+
+    # Prefer sips (always on macOS developer machines)
+    sips = shutil.which("sips")
+    if sips:
+        try:
+            # -Z max edge; formatOptions is 0-100
+            subprocess.run(
+                [
+                    sips,
+                    "-Z",
+                    str(int(max_edge)),
+                    "-s",
+                    "format",
+                    "jpeg",
+                    "-s",
+                    "formatOptions",
+                    str(int(jpeg_quality)),
+                    str(src),
+                    "--out",
+                    str(dest),
+                ],
+                check=True,
+                capture_output=True,
+            )
+            if dest.is_file() and dest.stat().st_size > 0:
+                return dest
+        except (subprocess.CalledProcessError, OSError):
+            pass
+
+    # Optional Pillow
+    try:
+        from PIL import Image  # type: ignore
+
+        with Image.open(src) as im:
+            im = im.convert("RGB")
+            im.thumbnail((int(max_edge), int(max_edge)))
+            im.save(dest, format="JPEG", quality=int(jpeg_quality), optimize=True)
+        if dest.is_file():
+            return dest
+    except Exception:
+        pass
+
+    # Last resort: only reuse tiny sources
+    if src.stat().st_size <= 80_000:
+        try:
+            shutil.copy2(src, dest)
+            return dest
+        except OSError:
+            return None
+    return None
+
+
+def prepare_photos_for_map(
+    photos: pd.DataFrame,
+    *,
+    max_edge: int = 280,
+    jpeg_quality: int = 65,
+    prefer_full_as_source: bool = False,
+) -> pd.DataFrame:
+    """Attach ``web_thumb_path`` (repo-relative) for map/filmstrip use.
+
+    Builds a per-photo cache under ``output/photo_web_thumbs/``. Idempotent.
+    Full-size files stay on disk for optional on-demand ``file://`` links;
+    they are **not** inlined into HTML.
+    """
+    if photos is None or photos.empty:
+        return photos
+    root = repo_root()
+    out = photos.copy()
+    web_paths: list[str | None] = []
+    for row in out.itertuples(index=False):
+        pid = str(getattr(row, "photo_id", "") or "")
+        candidates: list[Path] = []
+        thumb = getattr(row, "thumb_path", None)
+        full = getattr(row, "full_path", None)
+        order = (full, thumb) if prefer_full_as_source else (thumb, full)
+        for cand in order:
+            if cand is None or str(cand) in ("None", "nan", ""):
+                continue
+            tp = Path(str(cand))
+            if not tp.is_file():
+                tp = root / str(cand)
+            if tp.is_file():
+                candidates.append(tp)
+        web = None
+        for src in candidates:
+            web = ensure_web_thumb(
+                src,
+                photo_id=pid or src.stem,
+                max_edge=max_edge,
+                jpeg_quality=jpeg_quality,
+            )
+            if web is not None:
+                break
+        if web is None:
+            web_paths.append(None)
+        else:
+            try:
+                web_paths.append(str(web.resolve().relative_to(root.resolve())))
+            except ValueError:
+                web_paths.append(str(web))
+    out["web_thumb_path"] = web_paths
+    return out
+
 
 
 def materialise_walk_photos(
@@ -334,6 +513,7 @@ def materialise_walk_photos(
               directory VARCHAR,
               filename VARCHAR,
               thumb_path VARCHAR,
+              full_path VARCHAR,
               ingested_at TIMESTAMPTZ,
               PRIMARY KEY (photo_id, gpx_path)
             )
@@ -369,6 +549,7 @@ def materialise_walk_photos(
                     str(r.directory) if pd.notna(r.directory) else None,
                     str(r.filename) if pd.notna(r.filename) else None,
                     str(r.thumb_path) if pd.notna(getattr(r, "thumb_path", None)) else None,
+                    str(r.full_path) if pd.notna(getattr(r, "full_path", None)) else None,
                 )
             )
         con.executemany(
@@ -376,8 +557,8 @@ def materialise_walk_photos(
             INSERT INTO gps.walk_photos (
               photo_id, gpx_path, taken_at, photo_lat, photo_lon,
               snap_lat, snap_lon, distance_m, match_quality,
-              directory, filename, thumb_path, ingested_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+              directory, filename, thumb_path, full_path, ingested_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
             """,
             rows,
         )
