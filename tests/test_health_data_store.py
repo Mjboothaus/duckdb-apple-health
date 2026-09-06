@@ -1,16 +1,14 @@
-"""Tests for apple_health_data.HealthDataStore (uses local DB if present)."""
+"""Tests for health_data_store.HealthDataStore (uses local DB if present)."""
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import pytest
 
-REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "python"))
+from health_data_store import HealthDataStore, downsample_points
 
-from apple_health_data import HealthDataStore, downsample_points  # noqa: E402
+REPO = Path(__file__).resolve().parents[1]
 
 DB = REPO / "output" / "apple_health.duckdb"
 
@@ -52,7 +50,7 @@ def test_downsample_keeps_ends():
 
 
 def test_format_nominatim_address_prefers_suburb():
-    from apple_health_data import format_nominatim_address
+    from health_data_store import format_nominatim_address
 
     label = format_nominatim_address(
         {
@@ -70,7 +68,7 @@ def test_format_nominatim_address_prefers_suburb():
 
 
 def test_reverse_geocoder_uses_cache(tmp_path):
-    from apple_health_data import ReverseGeocoder
+    from health_data_store import ReverseGeocoder
 
     cache = tmp_path / "geo.json"
     cache.write_text(
@@ -86,7 +84,7 @@ def test_reverse_geocoder_uses_cache(tmp_path):
 def test_route_endpoints_and_enrich_offline():
     class FakeGeo:
         def lookup(self, lat, lon, *, fetch=True):
-            from apple_health_data.places import PlaceLabel
+            from health_data_store.places import PlaceLabel
 
             return PlaceLabel(lat=lat, lon=lon, label=f"P({lat:.2f},{lon:.2f})")
 
@@ -105,7 +103,7 @@ def test_materialise_route_places_writes_table(tmp_path):
     import shutil
     import tempfile
 
-    from apple_health_data.places import PlaceLabel
+    from health_data_store.places import PlaceLabel
 
     class FakeGeo:
         def lookup(self, lat, lon, *, fetch=True):
@@ -145,7 +143,7 @@ def test_materialise_route_places_writes_table(tmp_path):
 
 @pytest.mark.skipif(not DB.is_file(), reason="output/apple_health.duckdb not built")
 def test_walk_photos_and_filmstrip_if_present():
-    from apple_health_data.maps import filmstrip_html
+    from health_data_store.maps import filmstrip_html
 
     with HealthDataStore(DB) as store:
         # table may be empty if user never ran photos-for-walks

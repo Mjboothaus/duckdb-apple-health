@@ -216,7 +216,7 @@ Apple still gives **full** zips. Updating over time means **merge into this data
 Reusable (non-notebook) API:
 
 ```text
-python/apple_health_data/
+python/health_data_store/
   store.py   # HealthDataStore — open DB, list_routes, route_points, build_from_export
   maps.py    # build_route_map, downsample_points (Folium, no marimo)
 ```

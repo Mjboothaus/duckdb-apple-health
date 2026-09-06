@@ -73,7 +73,7 @@ See [RELEASE_NOTES.md](docs/RELEASE_NOTES.md) and [ROADMAP.md](docs/ROADMAP.md).
 
 **C (core).** Parser and zip code have no DuckDB headers. Only the table-function / entrypoint files talk to the C API. Versioning: root [`VERSION`](VERSION) + git tags → extension metadata ([VERSIONING.md](docs/VERSIONING.md)).
 
-**Python (supplementary add-ons, optional).** Fixtures, pytest, `HealthDataStore`, maps/photos/journeys, and marimo apps live under `python/apple_health_data/` and `pyproject.toml`. They are **not** required to `LOAD` the extension or run SQL scans. Today the project is still `package = false` in uv (app-style); the release plan treats this tree as a **supplementary package** to version and optionally publish later — not mixed into the C extension binary.
+**Python (supplementary package, optional).** Installable as **`health-data-store`** (`import health_data_store`) under `python/health_data_store/`. Base: local DuckDB store, journeys, places, Photos via `ATTACH`. Extras: `maps`, `notebooks`, `dev`, `all` — see [PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md). Not required to `LOAD` the extension. Not mixed into the C binary. v0.1 does not require PyPI publish.
 
 ## Requirements (Mac)
 
@@ -169,11 +169,12 @@ just pytest-ext-real export_zip=/path/to/export.zip
 ## Explore (optional)
 
 ```bash
-uv sync
-uv run marimo edit notebooks/explore_export.py
+just uv-sync   # or: uv sync --all-extras --group dev
+uv run --extra notebooks marimo edit notebooks/explore_export.py
 # walks / hikes map (GPS):
 just build-db export_zip=/path/to/export.zip
 just map-walks
+just walk-stories   # optional journeys + photos UI
 ```
 
 

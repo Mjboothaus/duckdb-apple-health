@@ -184,7 +184,16 @@ def journey_sections_df(con: duckdb.DuckDBPyConnection, journey_id: str) -> pd.D
           pl.start_place,
           pl.end_place
         FROM meta.journey_sections s
-        LEFT JOIN routes r ON s.gpx_path = r.gpx_path
+        LEFT JOIN (
+          -- routes can contain duplicate gpx_path rows; pick one per path
+          SELECT
+            gpx_path,
+            any_value(activity_type_short) AS activity_type_short,
+            min(workout_start_date) AS workout_start_date,
+            max(workout_end_date) AS workout_end_date
+          FROM routes
+          GROUP BY gpx_path
+        ) r ON s.gpx_path = r.gpx_path
         LEFT JOIN route_places pl ON s.gpx_path = pl.gpx_path
         WHERE s.journey_id = ?
         ORDER BY s.section_index

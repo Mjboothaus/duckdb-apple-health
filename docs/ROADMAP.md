@@ -43,10 +43,13 @@ Raw XML scan is intentionally the **slow path**; Parquet / local DuckDB is the *
 
 ## Near-term (toward v0.1.0)
 
+- [ ] **Marimo** `map_walks` / `walk_stories`: smoke-test or mark experimental in docs (library Folium path is source of truth)
+
+
 - [ ] Phase 0 wrap: walk-stories polish on main; docs complete (this cycle)
 - [ ] Phase 1: core freeze — `just bootstrap`, `pytest-ext`, README/USAGE contract, tag **v0.1.0**
 - [ ] Decide community extension submission timing (may be v0.1 or shortly after)
-- [ ] Python tree: keep as **optional supplementary package** (`python/apple_health_data`); same VERSION line of sight; no PyPI required for v0.1
+- [ ] Python tree: keep as **optional supplementary package** (`python/health_data_store`); same VERSION line of sight; no PyPI required for v0.1
 
 ## After v0.1
 

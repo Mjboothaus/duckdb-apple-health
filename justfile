@@ -164,25 +164,55 @@ list-walks limit="30":
 # Examples: just geocode-places   |   just geocode-places -- --limit 50   |   just geocode-places -- --all
 geocode-places *args:
     @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
-    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/geocode_route_places.py {{args}}
+    uv run --project . python scripts/geocode_route_places.py {{args}}
 
 
 # Match Apple Photos to walks (Photos.sqlite via DuckDB) → walk_photos + thumbs.
 # Examples: just photos-for-walks   |   just photos-for-walks -- --limit-walks 20
 photos-for-walks *args:
     @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
-    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/match_walk_photos.py {{args}}
+    uv run --project . python scripts/match_walk_photos.py {{args}}
 
 # Multi-section journeys (YAML → meta.journeys / journey_sections)
 journey-list:
     @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
-    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/manage_journeys.py list
+    uv run --project . python scripts/manage_journeys.py list
 
 journey-import manifest:
     @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
-    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/manage_journeys.py import {{manifest}}
+    uv run --project . python scripts/manage_journeys.py import {{manifest}}
 
 journey-sections journey_id:
-    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/manage_journeys.py sections {{journey_id}}
+    uv run --project . python scripts/manage_journeys.py sections {{journey_id}}
 
 
+
+# App view (default) — reliable Folium iframe + no sandbox.
+walk-stories:
+    @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
+    @echo "Opening Walk stories in APP view (marimo run)…"
+    uv run --project . --extra notebooks --extra maps marimo run --no-token --no-sandbox notebooks/walk_stories.py
+
+# Dev / notebook edit mode
+walk-stories-edit:
+    @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
+    uv run --project . --extra notebooks --extra maps marimo edit --no-token --no-sandbox notebooks/walk_stories.py
+
+# Explore export notebook (fixture or real zip path set in notebook)
+explore:
+    uv run --project . --extra notebooks marimo edit notebooks/explore_export.py
+
+# Map walks/hikes from local DB (needs maps + notebooks extras)
+map-walks:
+    @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
+    uv run --project . --extra notebooks --extra maps marimo edit --no-token --no-sandbox notebooks/map_walks.py
+
+# Developer: install package + all extras into .venv
+uv-sync:
+    uv sync --project . --all-extras --group dev
+
+
+# Build small web thumbs for map/marimo (cached under output/photo_web_thumbs).
+# Optional: just web-thumbs journey_id=camino-del-norte
+web-thumbs journey_id="":
+    uv run --project . python scripts/build_web_thumbs.py {{journey_id}}
