@@ -113,16 +113,33 @@ def build_route_map(
     for gpx, grp in draw.groupby("gpx_path", sort=False):
         g = grp.sort_values("point_index")
         act = str(g["activity"].iloc[0]) if "activity" in g.columns else ""
-        colour = palette.get(act, "#334155")
+        if "section_index" in g.columns and pd.notna(g["section_index"].iloc[0]):
+            # Distinct section colours (journey mode)
+            _sec_palette = [
+                "#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c",
+                "#0891b2", "#ca8a04", "#db2777", "#4f46e5", "#059669",
+            ]
+            si = int(g["section_index"].iloc[0])
+            colour = _sec_palette[(si - 1) % len(_sec_palette)]
+            sec_lab = (
+                str(g["section_label"].iloc[0])
+                if "section_label" in g.columns and pd.notna(g["section_label"].iloc[0])
+                else f"Section {si}"
+            )
+        else:
+            colour = palette.get(act, "#334155")
+            sec_lab = None
         meta_rows = chosen[chosen["gpx_path"] == gpx]
         if meta_rows.empty:
-            label = f"{act} · {gpx}"
+            label = f"{sec_lab} · {gpx}" if sec_lab else f"{act} · {gpx}"
             start_tip, end_tip = "Start", "End"
         else:
             meta = meta_rows.iloc[0]
             start_place = meta["start_place"] if "start_place" in meta.index and pd.notna(meta.get("start_place")) else None
             end_place = meta["end_place"] if "end_place" in meta.index and pd.notna(meta.get("end_place")) else None
             label = f"{meta['activity']} · {meta['start_date']} · {meta['duration_min']} min"
+            if sec_lab:
+                label = f"{sec_lab} · {label}"
             if start_place or end_place:
                 label = f"{label}<br/>{start_place or '?'} → {end_place or '?'}"
             start_tip = f"Start: {start_place}" if start_place else "Start"

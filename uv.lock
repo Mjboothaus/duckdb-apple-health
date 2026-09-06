@@ -484,6 +484,7 @@ dependencies = [
     { name = "pillow" },
     { name = "polars" },
     { name = "pytz" },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -503,6 +504,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=12.3.0" },
     { name = "polars", specifier = ">=1.0.0" },
     { name = "pytz", specifier = ">=2026.3.post1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
 ]
 
 [package.metadata.requires-dev]

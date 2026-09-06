@@ -208,6 +208,65 @@ class HealthDataStore:
         ).df()
 
 
+
+    def _write_con(self) -> duckdb.DuckDBPyConnection:
+        """Reopen read-write if needed for meta tables."""
+        if self.read_only or self._con is None:
+            self.close()
+            self.read_only = False
+        return self.connect()
+
+    def list_journeys(self) -> pd.DataFrame:
+        from .journeys import ensure_journey_tables, list_journeys as _list
+
+        con = self._write_con()
+        ensure_journey_tables(con)
+        return _list(con)
+
+    def journey_sections(self, journey_id: str) -> pd.DataFrame:
+        from .journeys import ensure_journey_tables, journey_sections_df
+
+        con = self._write_con()
+        ensure_journey_tables(con)
+        return journey_sections_df(con, journey_id)
+
+    def import_journey_manifest(self, path: Path | str):
+        from .journeys import import_manifest
+
+        con = self._write_con()
+        return import_manifest(con, path)
+
+    def points_for_journey(self, journey_id: str, *, map_layer: bool = True) -> pd.DataFrame:
+        """Route points for all sections, tagged with section_index."""
+        sec = self.journey_sections(journey_id)
+        if sec.empty:
+            return pd.DataFrame()
+        paths = sec["gpx_path"].dropna().tolist()
+        pts = self.route_points(paths, map_layer=map_layer)
+        if pts.empty:
+            return pts
+        idx_map = {r.gpx_path: int(r.section_index) for r in sec.itertuples(index=False)}
+        pts = pts.copy()
+        pts["section_index"] = pts["gpx_path"].map(idx_map)
+        label_map = {
+            r.gpx_path: (r.section_label or f"Section {int(r.section_index)}")
+            for r in sec.itertuples(index=False)
+        }
+        pts["section_label"] = pts["gpx_path"].map(label_map)
+        return pts.sort_values(["section_index", "point_index"])
+
+    def photos_for_journey(self, journey_id: str) -> pd.DataFrame:
+        sec = self.journey_sections(journey_id)
+        if sec.empty:
+            return self.photos_for_gpx([])
+        ph = self.photos_for_gpx(sec["gpx_path"].dropna().tolist())
+        if ph.empty:
+            return ph
+        idx_map = {r.gpx_path: int(r.section_index) for r in sec.itertuples(index=False)}
+        ph = ph.copy()
+        ph["section_index"] = ph["gpx_path"].map(idx_map)
+        return ph.sort_values(["section_index", "taken_at"])
+
     def photos_for_gpx(self, gpx_paths: Iterable[str] | None = None) -> pd.DataFrame:
         """Return walk_photos rows (empty frame if table missing)."""
         con = self.connect()

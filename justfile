@@ -150,3 +150,16 @@ photos-for-walks *args:
     @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
     PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/match_walk_photos.py {{args}}
 
+# Multi-section journeys (YAML → meta.journeys / journey_sections)
+journey-list:
+    @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
+    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/manage_journeys.py list
+
+journey-import manifest:
+    @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
+    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/manage_journeys.py import {{manifest}}
+
+journey-sections journey_id:
+    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/manage_journeys.py sections {{journey_id}}
+
+
