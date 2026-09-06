@@ -174,7 +174,7 @@ just pytest-ext-real export_zip=/path/to/export.zip
 
 **You do not need this section to use the C extension.** SQL + unsigned `LOAD` is enough.
 
-This block is **Layer B/C**: Python helpers in the same repo that build a **local DuckDB file**, then optional maps / multi-day journeys / Photos matching. Package name: **`health-data-store`** ([PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md)). Onboarding ladder: [PERSONA.md](docs/PERSONA.md) Rungs 3–5.
+Same repo, separate tooling: Python helpers that build a **local DuckDB file** from your export, then optional maps, multi-day journeys, and Photos matching. Package: **`health-data-store`** ([PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md)). Suggested path for going further: [PERSONA.md](docs/PERSONA.md).
 
 | Step | Command | What it does |
 |------|---------|----------------|
