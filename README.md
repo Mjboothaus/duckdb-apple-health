@@ -2,7 +2,7 @@
 
 **v0.1.0** — Apple Health exports → DuckDB SQL, in-process (core extension release).
 
-A DuckDB **scanner** extension that turns an Apple Health `export.zip` / `export.xml` into typed tables. Written in **C** on the **stable C API**. Load **unsigned** for now ([community INSTALL path](docs/CREATE_COMM_EXT.md)).
+A DuckDB **scanner** extension that turns an Apple Health `export.zip` / `export.xml` into typed tables. Written in **C** on the **stable C API**. Load **unsigned** today. A **community extension** release is planned next (**macOS first**) — see [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md).
 
 Data never leaves the process. This repository contains **no real Health exports**.
 
@@ -61,8 +61,8 @@ This project fills the gap between those: **HealthKit-aware, in-process SQL** ai
 | | |
 |---|---|
 | Version | **v0.1.0** |
-| Install | Local unsigned `LOAD` (community `INSTALL` not yet — see [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md)) |
-| Platforms proven | macOS Apple Silicon (`osx_arm64`) |
+| Install | Local unsigned `LOAD` today; **community `INSTALL` planned soon (macOS first)** — see [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md) |
+| Platforms proven | macOS Apple Silicon (`osx_arm64`); community target starts **macOS-only** |
 | DuckDB | Tested with **1.5.x** unsigned C-API load; **2.0** is the strategic target ([ROADMAP.md](docs/ROADMAP.md)) |
 | Correctness | SQLLogic + fixture golden + pytest vs `healthkit-to-sqlite` (top-level records) — green on freeze |
 | Limits | Parse currently buffers in bind (RAM ∝ export size); named `types`/`start`/`end` filters not shipped yet |
@@ -170,16 +170,29 @@ Optional real export (path stays outside the repo):
 just pytest-ext-real export_zip=/path/to/export.zip
 ```
 
-## Explore (optional)
+## Optional add-ons (not the extension)
+
+**You do not need this section to use the C extension.** SQL + unsigned `LOAD` is enough.
+
+This block is **Layer B/C**: Python helpers in the same repo that build a **local DuckDB file**, then optional maps / multi-day journeys / Photos matching. Package name: **`health-data-store`** ([PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md)). Onboarding ladder: [PERSONA.md](docs/PERSONA.md) Rungs 3–5.
+
+| Step | Command | What it does |
+|------|---------|----------------|
+| Dev env | `just uv-sync` | Install Python extras (`maps`, `notebooks`, …) |
+| Local DB | `just build-db export_zip=/path/to/export.zip` | Scan once → `output/apple_health.duckdb` (gitignored) |
+| List walks | `just list-walks 20` | SQL over the local DB (no marimo) |
+| Metrics notebook | `just explore` | marimo over fixture or a path you set |
+| Map walks | `just map-walks` | Folium map of walks/hikes (experimental UI) |
+| Journey stories | `just walk-stories` | Multi-day journeys + map app view (experimental) |
 
 ```bash
-just uv-sync   # or: uv sync --all-extras --group dev
-uv run --extra notebooks marimo edit notebooks/explore_export.py
-# walks / hikes map (GPS):
-just build-db export_zip=/path/to/export.zip
-just map-walks
-just walk-stories   # optional journeys + photos UI
+just uv-sync
+just build-db export_zip=/path/to/export.zip   # keep the zip outside the repo
+just list-walks 20
+just walk-stories    # app view; edit mode: just walk-stories-edit
 ```
+
+Privacy: real exports, Photos library access, and `output/` stay local — never commit them.
 
 
 ## Performance (real exports)
