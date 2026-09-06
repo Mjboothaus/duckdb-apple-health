@@ -1,248 +1,70 @@
 # Roadmap
 
-Working plan for `mjboothaus/duckdb-apple-health` after **v0.1**.
-Decisions here should stay aligned with [DESIGN.md](DESIGN.md).
-Data model: [docs/ERD.md](ERD.md).
+Living product direction for [duckdb-apple-health](https://github.com/Mjboothaus/duckdb-apple-health).
+Operational checklist: [RELEASE_PLAN.md](RELEASE_PLAN.md). Audience: [PERSONA.md](PERSONA.md).
+Versioning: [VERSIONING.md](VERSIONING.md).
 
-Last updated: 2026-09-05.
+## Product layers
 
-## North star
+| Layer | What | Ships when |
+|-------|------|------------|
+| **A — Core extension** | C + stable C API: zip/XML → typed table functions | **v0.1.0** (first public release) |
+| **B — Enriched local store** | Optional Python: `build-db`, Parquet, `HealthDataStore`, views | usable now; package polish with / after v0.1 |
+| **C — Experience add-ons** | Photos ATTACH, journeys YAML, Folium maps, marimo walk-stories | optional; not required for extension release |
 
-A **fast, local, privacy-preserving DuckDB scanner** for Apple Health exports:
+Core first. Add-ons must not block the extension binary or community-extension path.
 
-```text
-export.zip | export.xml | export-dir
-        → stream parse (bounded memory)
-        → typed DataChunks
-        → SQL / COPY Parquet
-```
+## Cousins (positioning)
 
-Unsigned load today. **DuckDB 2.0** stable C API + community packaging when the platform is ready.
+- **[webbed](https://github.com/teaguesterling/duckdb_webbed)** — generic XML/HTML in DuckDB ([docs](https://duckdb.org/community_extensions/extensions/webbed.html)). We specialise for HealthKit exports.
+- **[healthkit-to-sqlite](https://github.com/dogsheep/healthkit-to-sqlite)** — zip → SQLite batch tool. We keep analysis **in DuckDB** with SQL table functions.
 
-## Shipped (v0.1)
+## Performance stance
 
-- C extension on the stable C API (`USE_UNSTABLE_C_API=0`)
-- `read_apple_health(path)` — records with TIMESTAMPTZ, value / value_text split
-- `apple_health_workouts(path)` / `apple_health_activity_summaries(path)`
-- Path shapes: `.zip` (member `**/export.xml`), directory, bare XML
-- Synthetic fixtures + golden CSV; pytest vs golden and `healthkit-to-sqlite`
-- Marimo explore notebook (timing + Parquet materialise)
-- Real-export smoke: multi-million-row zip loads and agrees with pull-parser **top-level** record semantics
+Raw XML scan is intentionally the **slow path**; Parquet / local DuckDB is the **fast path** (see README).
 
-Known v0.1 limits (honest):
+**v0.1 honesty:** bind-time parse + buffering can use large RAM on multi‑GB exports; full GPS ingest is minutes-scale. Documented so users materialise early.
 
-- Parse runs in **bind** and buffers rows (RAM ∝ export size; re-query re-scans)
-- Zip member fully inflated to a temp file before parse
-- No named `types` / `start` / `end` filters yet (filter in SQL or `COPY`)
-- No first-class progress bar during bind
-- Nested `Correlation` / `Record` children intentionally skipped (same samples usually appear top-level)
+**Post-v0.1 performance work (priority order):**
 
-## Near term — v0.1.x (correctness & ergonomics)
+1. Stream rows in **execute** (chunked emission; lower peak RAM)
+2. Streaming inflate from zip (avoid full XML extract when possible)
+3. Named parameters / pushdown: `types`, `start`, `end` (and document vs `WHERE` after scan)
+4. String interning for repeated type/source strings
+5. Incremental `build-db` (skip GPX already present by path)
+6. Optional progress / estimated row counts for long scans
 
-1. **Zip inflate completeness** — **done** (this cycle): require `Z_STREAM_END` + central-directory sizes for data-descriptor members; real `export.zip` matches bare `export.xml` (HRV −2 gap closed).  
-2. **justfile uplift** — **done**: `just bootstrap`; `ensure-ext` so demos/`pytest-ext` build debug when missing; `demo-real export_zip=…`; refreshed header comments. Makefile remains source of truth for CMake/metadata.  
-3. **Streaming execute** — open/parse in the table-function body, emit ~vector-size chunks; stop buffering the full export in bind  
-4. **Streaming zip inflate** — feed zlib directly into the XML scanner (no full temp `export.xml` when avoidable); only after completeness tests are solid  
-5. **Named parameters** — `types`, `start`, `end`, `ignore_errors` on `read_apple_health`  
-6. **CLI / notebook progress** — bytes read + row counters (client-side); interrupt-friendly once parse is in execute  
-7. **Projection pushdown** — skip unused columns when the SELECT list is narrow  
-8. **Broader correctness** — optional real-export pytest (`APPLE_HEALTH_EXPORT_ZIP`); document Correlation vs `healthkit-to-sqlite` clearly in README  
+## Shipped on main (baseline)
 
-## Product focus — workouts & GPS (priority track)
+- Table functions: records, workouts (+ stats/events), activity summary, clinical records, workout routes, route GPX points
+- Fixture zip + `just` / `uv` developer path; CI smoke
+- Python: local DuckDB builder, maps (selected journeys), Photos helpers, marimo apps
+- Docs: architecture, privacy, persona, release plan, versioning; repo under **Mjboothaus**
 
-Personal / product priority after zip correctness. Real exports already carry routes as companion GPX, not inline coordinates in `export.xml`.
+## Near-term (toward v0.1.0)
 
-**Observed shape (typical full export):**
+- [ ] Phase 0 wrap: walk-stories polish on main; docs complete (this cycle)
+- [ ] Phase 1: core freeze — `just bootstrap`, `pytest-ext`, README/USAGE contract, tag **v0.1.0**
+- [ ] Decide community extension submission timing (may be v0.1 or shortly after)
+- [ ] Python tree: keep as **optional supplementary package** (`python/apple_health_data`); same VERSION line of sight; no PyPI required for v0.1
 
-- `apple_health_workouts` today: summary attributes only (type, duration, distance, energy, dates, source/device) — **no GPS**
-- Nested under `<Workout>`: `WorkoutEvent`, `WorkoutStatistics`, `MetadataEntry`
-- `WorkoutRoute` + `FileReference path="/workout-routes/route_….gpx"` (often ~1 route per outdoor workout)
-- Zip members: `apple_health_export/workout-routes/*.gpx` with `<trkpt lat lon>`, `ele`, `time`, extensions (`speed`, `course`, `hAcc`, `vAcc`)
+## After v0.1
 
-**Suggested PR sequence (GPS track):**
+- Streaming + filter pushdown (performance list above)
+- Workout route ↔ workout join helpers (SQL examples / optional view)
+- Clinical / ECG depth only if fixture + tests exist
+- Community extension packaging + multi-arch CI
+- Optional: publish supplementary Python package (name TBD, e.g. aligned with repo)
 
-1. **Route index** — **done**: `apple_health_workout_routes(path)`: route metadata + `gpx_path` / zip member; stable join key to parent workout (start/end/source or synthetic id). Fixture with one tiny GPX.  
-2. **Track points** — **done**: `apple_health_workout_route_points(path)` (or named param on routes): stream GPX `trkpt` → `lat`, `lon`, `ele`, `time` TIMESTAMPTZ, optional speed/course/accuracy; zip multi-member open.  
-3. **Workout enrichments** — optional `apple_health_workout_events` / statistics tables; keep opt-in so summary scan stays cheap.  
-4. **Ergonomics** — join examples in QUICKSTART; `COPY` routes/points to Parquet; document privacy (precise location).
+## Explicit non-goals (for now)
 
-**Shipped alongside GPS TFs:** marimo `notebooks/map_walks.py` (reads `output/apple_health.duckdb` via `just map-walks`). Live HealthKit and silent Watch/iPhone dedupe remain out of scope.
+- Replacing Apple Health or clinical decision support
+- Shipping personal exports, Photos libraries, or map HTML with PII in git
+- Supporting every HealthKit type edge-case in v0.1
+- Requiring Python to use the extension
 
-## Medium term — v0.2 (performance product)
+## Open product questions
 
-1. String interning for repeated `type` / `source_name` / `unit`  
-2. Store Apple dates as micros once at parse time (no string re-parse at emit)  
-3. Single-scan session option (records + workouts + summaries without triple inflate)  
-4. Release binaries for `osx_arm64` (and later `osx_amd64` / `linux_amd64`) with clear unsigned install docs  
-5. SQLLogic coverage expanded beyond template + smoke  
-
-Target user story:
-
-```sql
-COPY (
-  FROM read_apple_health('export.zip', types := ['HeartRate', 'StepCount'])
-) TO 'activity.parquet' (FORMAT parquet);
--- subsequent analytics hit Parquet in milliseconds
-```
-
-```sql
--- GPS track (planned): summaries ⋈ route points
-SELECT w.activity_type_short, p.time, p.lat, p.lon
-FROM apple_health_workouts('export.zip') w
-JOIN apple_health_workout_route_points('export.zip') p USING (/* join key TBD */);
-```
-
-## DuckDB 2.0 extension framework
-
-v0.1 already **bets on** the stable C API path that 2.0 is standardising (`extension-template-c`, `duckdb_extension.h`, unsigned community-style load).
-
-### Try DuckDB v2.0 / 2.1 alpha now
-
-See [Try DuckDB v2.0-alpha](https://duckdb.org/2026/09/02/try-duckdb-20-alpha).
-
-```bash
-# Alpha CLI (user-local; does not replace Homebrew duckdb)
-curl https://install.duckdb.org | DUCKDB_VERSION=alpha bash
-export PATH="$HOME/.duckdb/cli/latest:$PATH"
-
-# Headers from v2.0-cyanoptera + extension metadata v1.5.6 (parseable C API semver)
-just debug-alpha
-# or: make debug-alpha
-
-# LOAD requires absolute paths on hardened alpha builds
-just duckdb-alpha
-just demo
-
-# Python client (project already allows prereleases)
-uv sync --project .
-uv run python -c "import duckdb; print(duckdb.__version__, duckdb.sql('select version()').fetchone())"
-```
-
-Notes:
-
-- Extension **metadata** must be a parseable `vMAJOR.MINOR.PATCH` (not the branch name `v2.0-cyanoptera`).
-- C API headers on cyanoptera currently report **1.5.6**; we keep `USE_UNSTABLE_C_API=0`.
-- Homebrew DuckDB 1.5.x may refuse extensions built for C API > 1.2.0 — use the alpha CLI for this track.
-- Report load/parse failures upstream with a repro.
-
-When **DuckDB 2.0 GA** (and community C-API CI) lands, we intend to:
-
-| Work item | Intent |
-|---|---|
-| Pin / refresh `duckdb_capi` headers | Track 2.0 stable ABI, not nightlies ad hoc |
-| Community extension descriptor | `description.yml` / `INSTALL apple_health FROM community` when CI supports C-API extensions |
-| Drop “preview only” messaging | QUICKSTART assumes 2.0 CLI; keep unsigned fallback documented until signing is automatic |
-| Optional thin C++ | Only if 2.0 stable table-function C surface regresses; parser/zip stay C |
-| CI matrix | `osx_arm64`, `linux_amd64` (Wasm still out unless requested) |
-
-**Non-goals still:** unstable C++ `duckdb.hpp` template as the default; requiring a full DuckDB rebuild to develop the scanner.
-
-Until 2.0 community install works, distribution remains:
-
-```bash
-just debug
-duckdb -unsigned -c "LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension'; …"
-```
-
-## Later / v0.3+ (opt-in)
-
-- ECG / clinical records (explicit opt-in; privacy review)
-- Deduping Watch vs iPhone double counts (analytics policy, not silent)
-- Wasm / `excluded_platforms` only if there is demand
-- Python wheel wrapping the extension (fixtures stay Python; runtime stays C)
-
-Workout routes / GPX moved up to **Product focus — workouts & GPS** (no longer “someday only”).
-
-
-## Progressive exports & local database (options)
-
-Users often keep a **time series** of full `export_YYYY-MM-DD.zip` files. Apple does not ship deltas; each zip is a snapshot. We still need a clear story for “update my analytics without re-thinking five Parquet filenames.”
-
-**Target shape:** one DuckDB file with stable table names — see [docs/ERD.md](ERD.md).
-
-```text
-output/apple_health.duckdb
-  gps.workouts | gps.routes | gps.route_points | gps.route_points_map
-  meta.ingest_manifest
-```
-
-Default store is **`output/apple_health.duckdb`** (tables, not a pile of Parquet names). Optional `COPY … TO parquet` for interchange only. Build with `just build-db export_zip=…`.
-
-### Option A — Full rematerialise each export
-
-- Rescan the latest zip; rebuild database tables (or whole `output/maps/` tree).
-- **Pros:** simple, always matches that snapshot.
-- **Cons:** multi-minute GPS bind, high RAM; wastes work when only a few walks were added.
-- **Fits:** rare exports, debugging, first bootstrap.
-
-### Option B — Database + append diffs (recommended for GPS)
-
-```text
-new zip → scan → staging
-staging.routes anti-join lake.routes on gpx_path → INSERT
-new gpx_path points → INSERT (or replace points for that path if GPX hash changed)
-refresh route_points_map for touched paths only
-append meta.ingest_manifest row
-```
-
-- **Pros:** fast ongoing updates; map notebook always hits the local database; one clear schema.
-- **Cons:** need stable keys (`gpx_path`, soft workout key); define no-default-delete policy when a path disappears.
-- **Fits:** monthly/weekly exports, multi-year walk/hike history.
-
-### Option C — Watermark on records only
-
-- For HR/steps: `WHERE start_date > last_watermark` into typed Parquet/database tables.
-- **Pros:** cuts multi-million-row cost.
-- **Cons:** misses edits to older days; needs periodic full refresh.
-- **Fits:** high-volume samples, not the primary GPS path.
-
-### Option D — Scanner `since =>` / named filters
-
-- Extension parameters later (`types`, `start`, `end`) so a scan emits less.
-- **Pros:** less CPU without a lake.
-- **Cons:** still a full zip inflate/parse until streaming execute + pushdown exist; does not replace a local database for multi-export history.
-- **Fits:** v0.1.x/v0.2 ergonomics, complementary to B.
-
-### Option E — Snapshot reconcile (explicit)
-
-- “Make the local database identical to this export” (insert/update/delete).
-- **Pros:** true mirror of one dump.
-- **Cons:** can drop history if the export is incomplete; must be opt-in.
-- **Fits:** archival “as of date” branches, not daily mapping.
-
-### Recommended default
-
-| Concern | Choice |
-|---|---|
-| Source of truth for plotting | `output/apple_health.duckdb` |
-| GPS incremental updates | **Option B** |
-| First load / repair | **Option A** bootstrap into the local database |
-| Health records at scale | **C** + occasional full rebuild |
-| Extension role | Full-scan TFs + future filters (**D**); not multi-export state |
-
-### Non-goals in this area
-
-- Per-walk Parquet as the default layout (prefer tables + `gpx_path` filter; export one walk on demand).
-- Live HealthKit sync (still out of scope).
-- Committing database files or real zips to git.
-
-## Explicitly out of scope
-
-- Telemetry or network I/O inside the extension  
-- Shipping real Health exports in git or CI  
-- MCP / Streamlit / dbt packages as core deliverables  
-- Live HealthKit / Health Auto Export sync  
-
-## Success metrics
-
-| Signal | v0.1 | v0.2 aim |
-|---|---|---|
-| Fixture golden + HK compare | pass | pass |
-| Real export top-level counts vs pull-parser | agree | agree |
-| Peak RAM on ~2 GB `export.xml` | full buffer | O(chunk) |
-| HeartRate slice → Parquet | works | filters in scanner; much less CPU |
-| Install | unsigned local | community `INSTALL` on 2.0 when available |
-
-## Feedback
-
-Issues and PRs: [mjboothaus/duckdb-apple-health](https://github.com/mjboothaus/duckdb-apple-health).
+- Default recommended path for newcomers: SQL-only vs `build-db` first?
+- PyPI name and scope for the supplementary package (helpers only vs maps too)?
+- How aggressive to be on breaking SQL column names before 1.0 (see VERSIONING)?
