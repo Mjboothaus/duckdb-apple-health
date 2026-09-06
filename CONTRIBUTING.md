@@ -11,7 +11,7 @@ Thanks for interest in `duckdb-apple-health`. This is a **v0.1.0-beta** C extens
 ## Dev setup (macOS)
 
 ```bash
-git clone --recurse-submodules git@github.com:DataBooth/duckdb-apple-health.git
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
 cd duckdb-apple-health
 brew install cmake ninja ccache just
 just configure

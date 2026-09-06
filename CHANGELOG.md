@@ -54,5 +54,5 @@ First public **developer beta**.
 
 Full notes: [RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
 
-[Unreleased]: https://github.com/DataBooth/duckdb-apple-health/compare/v0.1.0-beta...HEAD
-[0.1.0-beta]: https://github.com/DataBooth/duckdb-apple-health/releases/tag/v0.1.0-beta
+[Unreleased]: https://github.com/mjboothaus/duckdb-apple-health/compare/v0.1.0-beta...HEAD
+[0.1.0-beta]: https://github.com/mjboothaus/duckdb-apple-health/releases/tag/v0.1.0-beta

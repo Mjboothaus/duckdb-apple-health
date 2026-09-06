@@ -48,7 +48,7 @@ Each rung is optional after the previous; **stopping early is success**.
 ### Rung 1 — Core unlock: SQL on a fixture (~20–40 min)
 
 ```bash
-git clone --recurse-submodules git@github.com:DataBooth/duckdb-apple-health.git
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
 cd duckdb-apple-health
 just bootstrap          # or: just configure && just debug
 just demo
@@ -164,6 +164,7 @@ just map-walks
 ## Related
 
 - Initial release plan (layers, phases, PR order): [RELEASE_PLAN.md](RELEASE_PLAN.md)
+- Versioning (extension + Python): [VERSIONING.md](VERSIONING.md)
 - Data model: [ERD.md](ERD.md)
 - Longer roadmap: [ROADMAP.md](ROADMAP.md)
 - Design constraints: [DESIGN.md](DESIGN.md)

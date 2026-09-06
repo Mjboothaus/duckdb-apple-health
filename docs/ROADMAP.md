@@ -1,6 +1,6 @@
 # Roadmap
 
-Working plan for `DataBooth/duckdb-apple-health` after **v0.1**.
+Working plan for `mjboothaus/duckdb-apple-health` after **v0.1**.
 Decisions here should stay aligned with [DESIGN.md](DESIGN.md).
 Data model: [docs/ERD.md](ERD.md).
 
@@ -245,4 +245,4 @@ append meta.ingest_manifest row
 
 ## Feedback
 
-Issues and PRs: [DataBooth/duckdb-apple-health](https://github.com/DataBooth/duckdb-apple-health).
+Issues and PRs: [mjboothaus/duckdb-apple-health](https://github.com/mjboothaus/duckdb-apple-health).
