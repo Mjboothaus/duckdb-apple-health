@@ -18,6 +18,11 @@ Related: [DESIGN.md](DESIGN.md) · [RELEASE_PLAN.md](RELEASE_PLAN.md) Phase 1 ·
 
 ---
 
+## Status
+
+Community PR opened: https://github.com/duckdb/community-extensions/pull/2653  
+(**macOS first**, source tag **v0.1.0**). CI on that PR is the source of truth for whether builds succeed.
+
 ## What “community extension” means
 
 DuckDB’s [community extensions](https://duckdb.org/community_extensions/) are **not**
