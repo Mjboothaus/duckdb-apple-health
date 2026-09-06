@@ -39,43 +39,58 @@ Get to a **reviewable first release** with three clear layers:
 
 ## Current state (snapshot)
 
+Last refreshed: 2026-09-06. Repo: **https://github.com/Mjboothaus/duckdb-apple-health** (no DataBooth branding in tree).
+
 ### On `main` (merged)
 
-- Extension TFs: records, workouts, activity summaries, routes, route points; zip DEFLATE fix  
-- Local DB bootstrap (`just build-db`), ERD, docs under `docs/`  
-- `HealthDataStore` + map helpers + free tiles (PR #18)  
-- `route_places` geocode materialise (PR #19)  
+- Extension TFs: records, workouts (+ stats/events), activity summaries, clinical, routes, route points; zip DEFLATE  
+- Local DB bootstrap (`just build-db`), ERD, docs (`PERSONA`, `RELEASE_PLAN`, `VERSIONING`, …)  
+- Photos / journeys / maps / walk-stories path (PRs **#21**, **#22**); DuckDB 2.0-alpha experiment (**#20**, non-blocking); rebrand + versioning (**#24**)  
+- `HealthDataStore`, map helpers, `route_places`, free tiles  
 
-### Open PRs (merge carefully)
+### Open PRs
 
-| PR | Branch | Layer | Notes |
-|----|--------|-------|-------|
-| **#20** | `feat/duckdb-2.0-alpha` | A (experimental) | Dual-target not fully finished; **do not block v0.1.0 core** |
-| **#21** | `feat/walk-stories-photos` | B/C | Photos.sqlite match, filmstrip, map_walks rewrite |
-| **#22** | `feat/multi-section-journeys` | B/C | Journeys YAML + section maps (historically stacked on #21) |
+None required for docs/positioning. Feature work continues via normal branches.
 
-### Typical uncommitted local (journeys branch)
+### Local / optional polish still open
 
-- `notebooks/walk_stories.py`, photo full-size paths, place chips, `just walk-stories`  
-- Personal journey YAML/HTML under gitignored `output/` (Camino, Abel, Three Capes, Six Foot, GNW)  
+- Walk-stories UX polish if any remaining stash or notebook tweaks  
+- Personal journey YAML/HTML under gitignored `output/` (not shipped)  
+- GNW: Olney catch-up; Bar Beach → Queens Wharf photo-implied gap (Layer C quality)  
 
-### Known product gaps (add-on quality, not core blockers)
+### Known product gaps (not core blockers for v0.1.0)
 
-- GNW: Olney catch-up leg; Bar Beach → Queens Wharf photo-implied gap  
-- Extension still bind-buffers full scans (document honestly)  
-- DuckDB 1.x default vs 2.0-alpha dual build incomplete  
+- Extension still bind-buffers full scans — **document honestly** (README performance section); optimise after v0.1  
+- Dual DuckDB 1.x / 2.0-alpha build incomplete  
+- Python still `package = false` (app-style uv project); treat as **supplementary package** (see below)  
 
-## Versioning proposal
+## Versioning
 
 Details and release checklist: [VERSIONING.md](VERSIONING.md) (root `VERSION`, extension git tag metadata, `pyproject.toml`).
-
 
 | Tag | Meaning |
 |-----|---------|
 | **v0.1.0** | **Core extension** release (Layer A solid); B minimally documented; C optional/experimental |
-| **v0.1.0-addons** or **v0.2.0-preview** | B+C “studio” add-ons (maps / photos / journeys / walk-stories) |
+| **v0.2.0** (or later) | B+C “studio” add-ons maturity; optional first **PyPI** of the supplementary Python package |
 
-Prefer **core first**, then a short add-ons tag, so extension-only users are not blocked on Photos/marimo.
+Prefer **core first**, then add-ons maturity, so extension-only users are not blocked on Photos/marimo.
+
+## Python packaging decision (supplementary package)
+
+**Question:** are we wrapping the Python bits as a supplementary package?
+
+**Answer: yes — as a product decision — without making PyPI a v0.1 gate.**
+
+| | |
+|--|--|
+| **Role** | Layer B/C only: fixtures, pytest, `HealthDataStore`, `build-db`, maps, Photos, journeys, marimo |
+| **Not** | Required to `LOAD` the extension or run SQL table functions |
+| **Layout today** | `python/apple_health_data/` + root `pyproject.toml` with **`package = false`** (uv application / monorepo style) |
+| **Version** | Same root **`VERSION`** / `just version-sync` as the extension line of sight ([VERSIONING.md](VERSIONING.md)) |
+| **v0.1.0** | Document the tree; keep `uv sync` working; **do not** require publish |
+| **Later** | Flip to an installable package (name TBD, e.g. `apple-health-data` or aligned with repo), optional extras (`maps`, `photos`, `notebooks`), then consider PyPI |
+
+Do **not** put Python inside the C extension binary. Do **not** block the core release on packaging polish.
 
 ---
 
@@ -83,12 +98,12 @@ Prefer **core first**, then a short add-ons tag, so extension-only users are not
 
 **Goal:** clean git story.
 
-1. **PR order:** merge **#21** then **#22** (or rebase #22 onto main after #21). Triage **#20** separately or defer.  
-2. **Follow-up PR:** commit `walk_stories.py` + remaining map/photo polish still local; **do not** commit personal `output/journeys/*.yml` trail lists.  
-3. **Docs:** keep this file + [PERSONA.md](PERSONA.md); link from [docs/README.md](README.md).  
-4. **Label commits** by layer where practical (`ext:`, `db:`, `addon:`).
+1. ~~**PR order:** merge **#21** then **#22**; triage **#20**.~~ **Done** (plus rebrand **#24**).  
+2. **Follow-up:** any remaining `walk_stories` / map polish still local → small PR; **do not** commit personal `output/journeys/*.yml`.  
+3. **Docs:** PERSONA, this plan, VERSIONING, ROADMAP, README positioning/performance — keep linked from [docs/README.md](README.md).  
+4. **Label commits** by layer where practical (`ext:`, `db:`, `addon:`, `docs:`).
 
-**Exit:** fewer open stacks; `main` builds; architecture documented.
+**Exit:** `main` builds; architecture and persona documented; ready for Phase 1 core freeze.
 
 ---
 

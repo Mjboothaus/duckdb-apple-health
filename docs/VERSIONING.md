@@ -7,7 +7,7 @@ This repo ships **two related artefacts** with coordinated SemVer:
 | Artefact | Where the version lives | What consumers see |
 |----------|-------------------------|-------------------|
 | **C extension** (`apple_health.duckdb_extension`) | Git **tag** at build time → `configure/extension_version.txt` → extension metadata | DuckDB `LOAD` metadata / `extension_version` field |
-| **Python add-ons** (`pyproject.toml` notebooks + `python/apple_health_data`) | `pyproject.toml` `[project].version` and root **`VERSION`** file | `uv` / pip metadata; docs |
+| **Python supplementary package** (optional Layer B/C: `python/apple_health_data`, notebooks) | `pyproject.toml` `[project].version` and root **`VERSION`** file | `uv` / future pip metadata; docs. **Not** required to use the extension. v0.1 does **not** require PyPI. |
 
 ## Source of truth
 
@@ -24,6 +24,15 @@ Keep these in sync on every release:
 5. Rebuild extension so metadata picks up the tag (`just configure && just debug` or `just release`)
 
 Helper: `just version` prints current values; `just version-sync` writes `VERSION` into `pyproject.toml`.
+
+## Supplementary Python package
+
+- **Purpose:** local DB, maps, Photos, journeys, tests — not the scan engine.
+- **Today:** root project uses uv with `package = false` (develop against the repo).
+- **v0.1.0:** ship docs + working `uv sync` / `just` recipes; no publish requirement.
+- **Later:** installable package + optional extras; keep SemVer aligned with root `VERSION` until a deliberate split.
+- Full product framing: [RELEASE_PLAN.md](RELEASE_PLAN.md) § Python packaging decision; [ROADMAP.md](ROADMAP.md).
+
 
 ## Extension version (how the template works)
 

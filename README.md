@@ -25,17 +25,36 @@ COPY (
 ) TO 'hr.parquet' (FORMAT parquet);
 ```
 
-> Raw XML is a scan. Parquet is the fast path. That is intentional.
+> **Raw XML is a scan. Parquet (or the local DuckDB file) is the fast path. That is intentional.**
 
-## Why an extension
+### What that means
 
-`webbed` reads generic XML. `healthkit-to-sqlite` batch-converts to SQLite. This project fills the gap: **HealthKit-aware, streaming, in-process SQL** with no Python ETL step.
+Apple Health exports are large attribute-centric XML (often multi‑GB once unzipped). Reading them with a table function is a **full scan**: CPU and memory scale with how much of the export you touch, and **re-running the same `SELECT` re-scans** unless you materialise.
+
+The design is therefore two-stage:
+
+1. **Scan once** (extension) — filter in SQL if you can, accept that the first pass is the expensive one.
+2. **Materialise** — `COPY … TO '….parquet'` and/or `just build-db` → `output/apple_health.duckdb`, then iterate in milliseconds on columnar storage.
+
+v0.1 still parses largely in **bind** and can buffer rows (RAM roughly tracks export size for a full load). That is a known limit, not the end state — see [Performance](#performance-real-exports) and [ROADMAP.md](docs/ROADMAP.md).
+
+## Why an extension (and how we relate to cousins)
+
+Two excellent projects already sit near this problem — they are **not** wrong; they solve different jobs:
+
+| Project | What it does well | How we differ |
+|---------|-------------------|---------------|
+| **[webbed](https://github.com/teaguesterling/duckdb_webbed)** ([community docs](https://duckdb.org/community_extensions/extensions/webbed.html)) | General **XML/HTML** in DuckDB: XPath, schema inference, SAX streaming for large markup | We are **HealthKit-shaped**: typed Health records/workouts/routes/GPX, Apple date offsets, zip layout the Health app emits — not a general XML toolkit |
+| **[healthkit-to-sqlite](https://github.com/dogsheep/healthkit-to-sqlite)** (Dogsheep / Datasette) | **Batch convert** an export zip → SQLite file you explore offline (progress bar, great personal-analytics story) | We stay **in-process in DuckDB**: `LOAD` + SQL table functions, optional Parquet/`build-db`, no separate Python ETL step required for the scan itself |
+
+This project fills the gap between those: **HealthKit-aware, in-process SQL** aimed at technical Apple users who already live in DuckDB (see [PERSONA.md](docs/PERSONA.md)).
 
 - Accepts the zip the Health app produces
-- Streams `export.xml` (multi-GB is normal)
+- Parses `export.xml` (multi-GB is normal) via a C scanner on the **stable C API**
 - Types dates (`yyyy-MM-dd HH:mm:ss Z`) as `TIMESTAMPTZ`
 - Splits numeric `value` from category `value_text` (sleep stages, etc.)
 - Stable C ABI so the binary is not rebuilt for every DuckDB patch
+- Optional **Python add-ons** (local DB, maps, Photos, journeys) — not required to unlock data in SQL
 
 ## Status (beta)
 
@@ -50,11 +69,11 @@ COPY (
 
 See [RELEASE_NOTES.md](docs/RELEASE_NOTES.md) and [ROADMAP.md](docs/ROADMAP.md).
 
-## Language
+## Language and packaging
 
-**C.** Parser and zip code have no DuckDB headers. Only the table-function / entrypoint files talk to the C API.
+**C (core).** Parser and zip code have no DuckDB headers. Only the table-function / entrypoint files talk to the C API. Versioning: root [`VERSION`](VERSION) + git tags → extension metadata ([VERSIONING.md](docs/VERSIONING.md)).
 
-Python is for fixtures, pytest, and an optional marimo notebook — not inside the extension.
+**Python (supplementary add-ons, optional).** Fixtures, pytest, `HealthDataStore`, maps/photos/journeys, and marimo apps live under `python/apple_health_data/` and `pyproject.toml`. They are **not** required to `LOAD` the extension or run SQL scans. Today the project is still `package = false` in uv (app-style); the release plan treats this tree as a **supplementary package** to version and optionally publish later — not mixed into the C extension binary.
 
 ## Requirements (Mac)
 
@@ -157,6 +176,26 @@ just build-db export_zip=/path/to/export.zip
 just map-walks
 ```
 
+
+## Performance (real exports)
+
+**Expectation for v0.1:** the **first full scan** of a real export is the slow, memory-heavy step. After you materialise (Parquet and/or `just build-db`), day-to-day queries should be fast.
+
+Illustrative offline smoke on one personal export kept **outside** git (~270 MiB zip, ~2 GiB uncompressed `export.xml`):
+
+| Metric | Order of magnitude |
+|--------|--------------------|
+| `read_apple_health` rows | ~**4.3 million** top-level records |
+| Workouts | ~**1.7k** |
+| Activity summary days | ~**2.7k** |
+| Walking/Hiking GPS (when built into local DB) | ~**1.3k** routes, millions of track points |
+
+Wall-clock and peak RAM depend on machine, disk, and whether you pull **all** records vs filtered `COPY`, and whether you also ingest **all** GPX points. Full GPS `build-db` is typically **minutes**, not seconds, on a large multi-year export.
+
+**Optimisation opportunities (not all shipped):** streaming execute (emit chunks without buffering the whole bind), streaming zip inflate, named `types`/`start`/`end` pushdown, string interning, incremental DB append by `gpx_path`. Tracked in [ROADMAP.md](docs/ROADMAP.md).
+
+**Recommended workflow:** scan → filter → Parquet and/or local DuckDB → analytics/maps. Do not loop `FROM read_apple_health(huge.zip)` in a notebook cell.
+
 ## Privacy
 
 - No telemetry and no network I/O in the extension
@@ -178,4 +217,4 @@ Apache-2.0. Maintained by [mjboothaus](https://github.com/mjboothaus).
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Security: [SECURITY.md](SECURITY.md)
 - C-API template: [`duckdb/extension-template-c`](https://github.com/duckdb/extension-template-c)
-- Cousins: community `fit`, `webbed`; Dogsheep `healthkit-to-sqlite`
+- Cousins (different jobs, complementary): [webbed](https://github.com/teaguesterling/duckdb_webbed) (XML/HTML in DuckDB), [healthkit-to-sqlite](https://github.com/dogsheep/healthkit-to-sqlite) (export → SQLite); community `fit` for FIT files
