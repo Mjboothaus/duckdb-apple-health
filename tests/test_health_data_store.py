@@ -141,3 +141,19 @@ def test_materialise_route_places_writes_table(tmp_path):
             store.close()
     finally:
         shutil.rmtree(td, ignore_errors=True)
+
+
+@pytest.mark.skipif(not DB.is_file(), reason="output/apple_health.duckdb not built")
+def test_walk_photos_and_filmstrip_if_present():
+    from apple_health_data.maps import filmstrip_html
+
+    with HealthDataStore(DB) as store:
+        # table may be empty if user never ran photos-for-walks
+        ph = store.photos_for_gpx()
+        assert ph is not None
+        if ph.empty:
+            return
+        assert {"photo_id", "gpx_path", "snap_lat", "snap_lon"} <= set(ph.columns)
+        html = filmstrip_html(ph.head(3))
+        assert isinstance(html, str)
+        assert len(html) > 20

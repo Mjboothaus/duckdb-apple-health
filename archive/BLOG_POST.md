@@ -1,6 +1,6 @@
 # From Health export to SQL: building a DuckDB scanner in C
 
-*DataBooth · August 2026 · Australian English*
+*DataBooth · August–September 2026 · Australian English*
 
 Apple’s Health app will cheerfully hand you a multi‑gigabyte `export.zip`. Getting that into a place where you can ask ordinary SQL questions — without a Python ETL job, without shipping PHI to a warehouse, and without rebuilding an extension for every DuckDB patch — is still awkward.
 
@@ -149,12 +149,86 @@ Data model diagrams: [`docs/ERD.md`](../docs/ERD.md). Progressive multi-export o
 
 On one personal export, walks/hikes alone were on the order of **~1.3k workouts**, **~1.3k routes**, and **~6M** raw track points — hence a downsampled `route_points_map` layer for plotting.
 
+## Product loop after the scanner (late August → early September 2026)
+
+Once GPS table functions shipped, the interesting work moved **above** the extension: make everyday use feel like a small local product, not a research CLI.
+
+### Helper outside the notebook
+
+The first map notebook did too much: open DuckDB, list routes, downsample, build Folium, and fight marimo display rules in one file. We extracted **`python/apple_health_data/`**:
+
+| Module | Role |
+|---|---|
+| `store.py` | `HealthDataStore` — open DB, catalogue routes, points, build-from-export |
+| `maps.py` | `build_route_map` / downsample — Folium only, free OSM/Esri tiles (no API key) |
+| `places.py` | reverse-geocode start/end via Nominatim + JSON cache |
+| `photos.py` | match Photos.sqlite to walks, copy thumbs, write `walk_photos` |
+
+`notebooks/map_walks.py` is UI wiring. `scripts/build_health_db.py` is a thin CLI over `HealthDataStore.build_from_export`. That split matters more than it sounds: tests and `just list-walks` no longer depend on marimo cells.
+
+### Places you can read
+
+Apple Health does not store “Drummoyne → Barangaroo” on a workout. GPS endpoints do. We reverse-geocode first/last map points (Nominatim, no key, ~1 req/s, cache under `output/geocode_cache.json`) and **materialise** into DuckDB:
+
+```text
+just geocode-places --limit 50
+just list-walks 10   # start_place / end_place columns when present
+```
+
+Table: `gps.route_places` (view `route_places`). Labels feed the catalogue, map tooltips, and SQL without re-hitting the network.
+
+### Walk photos: SQL against Photos, not a full library load
+
+The next product beat is a **walk story** map: route + photos taken on the walk. Photos live in Apple Photos (`Photos Library.photoslibrary`), not the Health zip.
+
+Loading the whole library through **osxphotos** is correct but slow on a large library (~100s to open). DuckDB already knows how to **`ATTACH` SQLite read-only**:
+
+```sql
+INSTALL sqlite; LOAD sqlite;
+ATTACH '~/Pictures/Photos Library.photoslibrary/database/Photos.sqlite'
+  AS photos (TYPE sqlite, READ_ONLY);
+ATTACH 'output/apple_health.duckdb' AS health (READ_ONLY);
+-- ZASSET ⋈ routes on time window (+ GPS snap in Python)
+```
+
+Caveat we documented in code: `ZDATECREATED` is **Cocoa seconds since 2001-01-01**. The scanner can mis-present it as a TIMESTAMP; recover with `to_timestamp(epoch(ZDATECREATED) + 978307200)`.
+
+Pipeline:
+
+```text
+Photos.sqlite ──DuckDB join──► candidates
+route_points_map ──snap / max distance──► walk_photos rows
+Photos derivatives JPEG ──copy──► output/photo_thumbs/
+just photos-for-walks
+```
+
+Thumbs come from Photos **derivatives** (JPEG), not multi‑MB HEIC masters. Cap per walk keeps the map readable. Folium gets an optional Photos layer (click popup with data-URI image).
+
+The UX target is an elegant marimo **walk stories** app (rail + tall map + filmstrip), still UI-only over the same helpers — not another wall of sliders.
+
+### DuckDB 2.0 alpha (parallel track)
+
+With [DuckDB v2.0-alpha](https://duckdb.org/2026/09/02/try-duckdb-20-alpha) out, we trialled building the extension against **`v2.0-cyanoptera`** C API headers. Lesson: extension **metadata must be a parseable `vMAJOR.MINOR.PATCH`** (e.g. C API `v1.5.6`); baking the branch name `v2.0-cyanoptera` into metadata fails at `LOAD`. Alpha CLI also wants **absolute** paths for `LOAD` under hardened macOS builds. Default day-to-day build stays on the stable pin so Homebrew 1.5.x users are not stranded; alpha is an explicit path (`debug-alpha` / alpha CLI). Details: `docs/ROADMAP.md`.
+
+### Commands that matter now
+
+```bash
+just build-db export_zip=/path/to/export.zip
+just geocode-places --limit 100
+just photos-for-walks -- --limit-walks 20
+just list-walks 10
+just map-walks
+```
+
+Privacy still holds: real exports, Photos library, geocode cache, and thumbs stay under gitignored `output/` (or outside the repo). The extension still does no network I/O.
+
 ## Credits and links
 
 - Repo: [DataBooth/duckdb-apple-health](https://github.com/DataBooth/duckdb-apple-health)
 - C‑API template: [duckdb/extension-template-c](https://github.com/duckdb/extension-template-c)
 - Implementation gates: `docs/DESIGN.md`
 - Data model: `docs/ERD.md`
-- Roadmap (incl. multi-export DB options): `docs/ROADMAP.md`
+- Roadmap (incl. multi-export DB options + 2.0 alpha): `docs/ROADMAP.md`
+- Progress log: `archive/BLOG_PROGRESS.md`
 
-Built gate‑by‑gate on a MacBook (Apple Silicon) in one focused day — mostly because the brief refused to let us skip evidence.
+Built gate‑by‑gate on a MacBook (Apple Silicon) in one focused day for v0.1 — then extended into a local map/photos product loop without abandoning the scanner model.

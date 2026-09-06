@@ -143,3 +143,10 @@ geocode-places *args:
     @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
     PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/geocode_route_places.py {{args}}
 
+
+# Match Apple Photos to walks (Photos.sqlite via DuckDB) → walk_photos + thumbs.
+# Examples: just photos-for-walks   |   just photos-for-walks -- --limit-walks 20
+photos-for-walks *args:
+    @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
+    PYTHONPATH="{{justfile_directory()}}/python${PYTHONPATH:+:$PYTHONPATH}" uv run --project . python scripts/match_walk_photos.py {{args}}
+

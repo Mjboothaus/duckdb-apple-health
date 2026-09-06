@@ -10,6 +10,9 @@ dependencies = [
     "altair>=5.4.0",
     "polars>=1.0.0",
     "folium>=0.20.0",
+    "osxphotos>=0.76.1",
+    "pillow>=12.3.0",
+    "pytz>=2026.3.post1",
 ]
 
 [tool.uv]
