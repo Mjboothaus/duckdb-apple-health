@@ -76,6 +76,22 @@ https://github.com/duckdb/community-extensions/pull/2653
 
 ---
 
+
+## Plain-English shorter variant (less technical)
+
+**v0.1.0** of **duckdb-apple-health** is out.
+
+If you use an iPhone or Apple Watch, Apple Health quietly stores years of steps, heart rate, sleep, workouts, and more. You can ask the Health app for a copy of that history: it produces a file usually called **`export.zip`**. Inside is a large text dump of your records (and, for many workouts, GPS tracks). It’s *your* data — but until now it’s been awkward to open and explore on a Mac without specialised tools.
+
+This project is a small open-source add-on for **DuckDB** (a free, local analytics database people use a bit like a smarter spreadsheet/SQL engine). It reads that Health export **on your computer** and turns it into tables you can query. Nothing is uploaded; there’s no cloud service and no tracking in the extension.
+
+**Right now:** download or build from GitHub and load it yourself (a “developer-style” install).  
+**Next:** I’ve asked the DuckDB community to list it so install is one step for Mac users — that request is **under review**, not live yet.
+
+https://github.com/Mjboothaus/duckdb-apple-health/releases/tag/v0.1.0  
+https://github.com/duckdb/community-extensions/pull/2653  
+
+---
 ## Ultra-short
 
 Shipped **v0.1.0** of a DuckDB extension so Apple Health exports become local SQL — C, stable C API, no telemetry. Community extension under review (macOS first).
