@@ -1,21 +1,23 @@
 # LinkedIn announcement — duckdb-apple-health
 
-*Short posts you can paste when you are ready to announce. Tweak voice/length. No PHI. Last updated: 2026-09-06.*
+*Short posts you can paste. Tweak voice/length. No PHI. Last updated: 2026-09-07.*
 
-**When to post:** after **v0.1.0** is tagged (or clearly labelled beta) and the public README matches this draft. Until then treat this as a working copy.
+**When to post:** **v0.1.0 is tagged** — good time to announce. Community install is **under review** (not live yet); say “submitted / pending review,” not “available via `INSTALL … FROM community`” until that PR merges.
 
-**Repo (public):** https://github.com/Mjboothaus/duckdb-apple-health
+**Repo:** https://github.com/Mjboothaus/duckdb-apple-health  
+**Release:** https://github.com/Mjboothaus/duckdb-apple-health/releases/tag/v0.1.0  
+**Community PR (review):** https://github.com/duckdb/community-extensions/pull/2653  
 
 ---
 
 ## Primary post (recommended)
 
-I open-sourced **duckdb-apple-health** — a DuckDB **scanner** that turns an Apple Health `export.zip` into typed SQL tables, **in-process**.
+I tagged **v0.1.0** of **duckdb-apple-health** — a DuckDB **scanner** that turns an Apple Health `export.zip` into typed SQL tables, **in-process**.
 
 No cloud. No warehouse. No telemetry in the extension. Your export stays on your machine.
 
 ```sql
--- duckdb -unsigned
+-- duckdb -unsigned (local build / release binary for now)
 LOAD '…/apple_health.duckdb_extension';
 
 FROM read_apple_health('export.zip');
@@ -25,37 +27,31 @@ FROM apple_health_workout_routes('export.zip');
 FROM apple_health_workout_route_points('export.zip');
 ```
 
-**Who it's for**
+**Who it’s for**
 
-Technical people in the **Apple** ecosystem (Health, optionally Photos) who already live in SQL/DuckDB and want to **unlock their own data** locally — not another dashboard that needs your PHI.
+Technical people in the **Apple** ecosystem who already live in SQL/DuckDB and want to **unlock their own Health data** locally — not another dashboard that needs your PHI.
 
-**Why it exists (cousins do different jobs)**
+**Why it exists**
 
-- **[webbed](https://github.com/teaguesterling/duckdb_webbed)** — excellent **generic** XML/HTML in DuckDB
-- **[healthkit-to-sqlite](https://github.com/dogsheep/healthkit-to-sqlite)** — excellent **batch** zip → SQLite
+- **webbed** — excellent generic XML/HTML in DuckDB  
+- **healthkit-to-sqlite** — excellent batch zip → SQLite  
 
-The gap: **HealthKit-aware, in-process DuckDB SQL** (typed dates, numeric vs category values, zip layout, workouts, routes/GPX).
+The gap: **HealthKit-shaped, in-process DuckDB SQL** (typed dates, numeric vs category values, zip layout, workouts, routes/GPX).
 
-**How it's built**
+**v0.1.0**
 
-- **C** on DuckDB's **stable C API** (not the unstable C++ extension template)
-- Parser + zip code have **zero** DuckDB headers
-- Synthetic fixtures only in git — real exports never required in the repo
-- Optional **Python add-ons** (local DuckDB file, maps, Photos, multi-day journeys) if you want stories later — **not** required to unlock data in SQL
+- Core C extension on DuckDB’s **stable C API** (not the unstable C++ template)  
+- Fixture tests + SQLLogic green on freeze  
+- Honest design: raw XML is a **scan**; Parquet / a local DuckDB file is the **fast path**  
+- Optional Python helpers in the same repo (`health-data-store`, maps/stories) — **not** required to unlock data in SQL  
 
-**Design honesty**
+**Community extension**
 
-> Raw XML is a **scan**. Parquet (or a local DuckDB file) is the **fast path**. That is intentional.
+I’ve submitted **`apple_health`** to the DuckDB community extensions repo for review (**macOS first**). Until that lands, you build/load **unsigned** from the GitHub release / source.
 
-First full pass of a multi-year export can be minutes and RAM-heavy; materialise the slices you care about once, then iterate.
-
-**Reality check** on one personal export kept offline (~270 MiB zip / ~2 GiB XML): on the order of **~4.3M** records, **~1.7k** workouts, **~2.7k** activity-summary days — then `COPY` / `build-db` for day-to-day work.
-
-**Status:** developer **v0.1** — local **unsigned** `LOAD`, macOS Apple Silicon proven, **not** in the community extension repo yet. Community `INSTALL` tracks the DuckDB 2.0 / C-API packaging path.
-
-Repo: https://github.com/Mjboothaus/duckdb-apple-health
-
-Docs: README · [PERSONA](https://github.com/Mjboothaus/duckdb-apple-health/blob/main/docs/PERSONA.md) · [ROADMAP](https://github.com/Mjboothaus/duckdb-apple-health/blob/main/docs/ROADMAP.md) · [RELEASE_PLAN](https://github.com/Mjboothaus/duckdb-apple-health/blob/main/docs/RELEASE_PLAN.md)
+Repo: https://github.com/Mjboothaus/duckdb-apple-health  
+Release: https://github.com/Mjboothaus/duckdb-apple-health/releases/tag/v0.1.0  
+Community review: https://github.com/duckdb/community-extensions/pull/2653  
 
 #DuckDB #AppleHealth #HealthKit #OpenSource #DataEngineering #Analytics #Privacy #LocalFirst
 
@@ -63,7 +59,7 @@ Docs: README · [PERSONA](https://github.com/Mjboothaus/duckdb-apple-health/blob
 
 ## Shorter variant
 
-Open-sourcing **duckdb-apple-health**: Apple Health `export.zip` → DuckDB SQL **in-process** (C, stable C API, unsigned load).
+**v0.1.0** of **duckdb-apple-health** is out: Apple Health `export.zip` → DuckDB SQL **in-process** (C, stable C API).
 
 ```sql
 FROM read_apple_health('export.zip');
@@ -71,19 +67,20 @@ FROM apple_health_workouts('export.zip');
 FROM apple_health_workout_route_points('export.zip');
 ```
 
-HealthKit-shaped (not generic XML). Scan once → Parquet or a local DB for the fast path. Synthetic fixtures in git; your real export never has to leave the laptop.
+Scan once → Parquet or a local DB for the fast path. Synthetic fixtures in git; your real export never has to leave the laptop.
 
-Optional maps / Photos / walk stories via Python add-ons — core is SQL-only.
+Community `INSTALL` is **submitted for review** (macOS first) — until then, load unsigned from the release.
 
-https://github.com/Mjboothaus/duckdb-apple-health
+https://github.com/Mjboothaus/duckdb-apple-health/releases/tag/v0.1.0  
+https://github.com/duckdb/community-extensions/pull/2653  
 
 ---
 
-## Ultra-short (character-tight)
+## Ultra-short
 
-Built a DuckDB extension so Apple Health exports become local SQL — C, stable C API, no telemetry. Scan → Parquet. Optional maps later. v0.1 unsigned.
+Shipped **v0.1.0** of a DuckDB extension so Apple Health exports become local SQL — C, stable C API, no telemetry. Community extension under review (macOS first).
 
-https://github.com/Mjboothaus/duckdb-apple-health
+https://github.com/Mjboothaus/duckdb-apple-health/releases/tag/v0.1.0  
 
 #DuckDB #AppleHealth #OpenSource
 
@@ -91,22 +88,21 @@ https://github.com/Mjboothaus/duckdb-apple-health
 
 ## Comment you can add under the post
 
-Deep-dive and design notes live in the repo docs (README performance section, PERSONA onboarding ladder, ROADMAP).
+Table functions in v0.1.0: records, workouts, activity summaries, workout routes, GPX route points.  
 
-Table functions today: records, workouts (+ stats/events where exposed), activity summaries, clinical records, workout routes, GPX route points.
+Fast path: `COPY … TO '….parquet'` (or optional local DB helpers in the same repo).  
 
-Fast path: `COPY … TO '….parquet'` or `just build-db` → `output/apple_health.duckdb`.
+Community PR for `INSTALL apple_health FROM community` (macOS first): https://github.com/duckdb/community-extensions/pull/2653 — not merged yet; feedback welcome if you try the unsigned build.  
 
-Explore notebooks (optional): `notebooks/explore_export.py`, maps via `just map-walks` / walk-stories after a local DB exists.
-
-Feedback welcome from DuckDB + Apple Health folks — especially on streaming/execute performance and community packaging.
+Docs: README performance section · PERSONA onboarding · CREATE_COMM_EXT for the install path.  
 
 ---
 
 ## What not to claim (checklist)
 
-- [ ] Not "App Store app" or one-click for non-technical users
-- [ ] Not community `INSTALL apple_health` yet
-- [ ] Not live HealthKit sync
-- [ ] Not medical advice / clinical decision support
-- [ ] Do not paste personal HR, GPS, or photo paths in the post or comments
+- [ ] Not “App Store app” or one-click for non-technical users  
+- [ ] Not `INSTALL apple_health FROM community` **until** the community PR is merged  
+- [ ] Not multi-platform community binaries yet (macOS-first submission)  
+- [ ] Not live HealthKit sync  
+- [ ] Not medical advice / clinical decision support  
+- [ ] Do not paste personal HR, GPS, or photo paths in the post or comments  
