@@ -18,9 +18,10 @@ jobs:
     name: Build extension binaries
     uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.5-variegata
     with:
-      # Must match Makefile TARGET_DUCKDB_VERSION (C API metadata). Mismatch causes
-      # load failures like: built for C API v1.5.6 but tester only loads ≤ v1.2.0.
-      duckdb_version: v1.5.6
+      # DuckDB *release* used to compile/test (not the C extension API stamp).
+      # Makefile TARGET_DUCKDB_VERSION stays at v1.2.0 (stable C API metadata).
+      # Align with community-extensions DUCKDB_LATEST_STABLE.
+      duckdb_version: v1.5.5
       ci_tools_version: v1.5-variegata
       extension_name: apple_health
       extra_toolchains: python3
