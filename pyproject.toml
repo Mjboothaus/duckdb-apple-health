@@ -21,7 +21,7 @@ maps = [
 ]
 # Marimo apps — EXPERIMENTAL; not fully verified. Prefer scripts + maps helpers.
 notebooks = [
-    "marimo>=0.13.0",
+    "marimo>=0.24.2",
     "altair>=5.4.0",
     "polars>=1.0.0",
     "folium>=0.20.0",
@@ -33,7 +33,7 @@ dev = [
 ]
 all = [
     "folium>=0.20.0",
-    "marimo>=0.13.0",
+    "marimo>=0.24.2",
     "altair>=5.4.0",
     "polars>=1.0.0",
     "pytest>=8.0",

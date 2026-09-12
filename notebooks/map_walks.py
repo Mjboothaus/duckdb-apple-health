@@ -31,7 +31,14 @@ def _():
     from healthkit_store import DEFAULT_DB_PATH, HealthkitStore, build_route_map
     from healthkit_store.maps import filmstrip_html
 
-    return DEFAULT_DB_PATH, HealthkitStore, Path, build_route_map, filmstrip_html, mo
+    return (
+        DEFAULT_DB_PATH,
+        HealthkitStore,
+        Path,
+        build_route_map,
+        filmstrip_html,
+        mo,
+    )
 
 
 @app.cell
@@ -126,7 +133,7 @@ def _(HealthkitStore, Path, db_path, mo):
                 store.close()
             store = None
             shell = mo.md(f"# Walk stories\n\n**Could not open DB:** `{e}`")
-    return shell, status_line, store
+    return shell, store
 
 
 @app.cell
@@ -275,18 +282,21 @@ def _(mo, rail, stage):
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
-        ---
-        ```bash
-        just build-db export_zip=/path/to/export.zip
-        just geocode-places -- --limit 100
-        just photos-for-walks -- --limit-walks 40
-        just map-walks
-        ```
-        Helpers: `python/healthkit_store/` · model: `docs/ERD.md`
-        """
-    )
+    mo.md(r"""
+    ---
+    ```bash
+    just build-db export_zip=/path/to/export.zip
+    just geocode-places -- --limit 100
+    just photos-for-walks -- --limit-walks 40
+    just map-walks
+    ```
+    Helpers: `python/healthkit_store/` · model: `docs/ERD.md`
+    """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
