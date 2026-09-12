@@ -21,8 +21,8 @@ python := env_var_or_default("PYTHON", "python3")
 duckdb := env_var_or_default("DUCKDB", if path_exists(home_directory() / ".duckdb/cli/latest/duckdb") == "true" { home_directory() / ".duckdb/cli/latest/duckdb" } else { "duckdb" })
 gen    := env_var_or_default("GEN", "ninja")
 
-ext_debug   := "build/debug/extension/apple_health/apple_health.duckdb_extension"
-ext_release := "build/release/extension/apple_health/apple_health.duckdb_extension"
+ext_debug   := "build/debug/extension/healthkit_export/healthkit_export.duckdb_extension"
+ext_release := "build/release/extension/healthkit_export/healthkit_export.duckdb_extension"
 
 # Prefer debug binary if present.
 # path_exists returns the strings "true"/"false"; if requires a comparison.
@@ -64,7 +64,7 @@ fixture:
 
 [private]
 need-template:
-    @test -f Makefile || { echo "No Makefile. Vendor duckdb/extension-template-c and rename the extension to apple_health."; exit 1; }
+    @test -f Makefile || { echo "No Makefile. Vendor duckdb/extension-template-c and set EXTENSION_NAME=healthkit_export."; exit 1; }
 
 # Configure once after clone (venv, platform, extension version).
 configure: need-template
@@ -124,10 +124,10 @@ duckdb: fixture ensure-ext
 
 # One-shot scan of the synthetic zip.
 demo: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT type_short, unit, value, value_text, start_date FROM read_apple_health('test/data/export.zip') ORDER BY start_date, type_short;"
+    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT type_short, unit, value, value_text, start_date FROM read_healthkit_export('test/data/export.zip') ORDER BY start_date, type_short;"
 
 demo-xml: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT count(*) AS n FROM read_apple_health('test/data/export.xml');"
+    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT count(*) AS n FROM read_healthkit_export('test/data/export.xml');"
 
 # Streaming parser CLI (no DuckDB). Builds if missing. Accepts xml/zip/dir.
 parse-cli path="test/data/export.xml": fixture
@@ -141,10 +141,10 @@ parse-cli-dir: fixture
     @just parse-cli test/data
 
 demo-workouts: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT activity_type_short, duration, total_distance, total_energy FROM apple_health_workouts('test/data/export.zip');"
+    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT activity_type_short, duration, total_distance, total_energy FROM healthkit_workouts('test/data/export.zip');"
 
 demo-routes: fixture ensure-ext
-    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT workout_activity_type_short, gpx_path, source_name FROM apple_health_workout_routes('test/data/export.zip');"
+    {{duckdb}} -unsigned -c "LOAD '{{justfile_directory()}}/{{ext_debug}}'; SELECT workout_activity_type_short, gpx_path, source_name FROM healthkit_workout_routes('test/data/export.zip');"
 
 
 

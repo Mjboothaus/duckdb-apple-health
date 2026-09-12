@@ -16,13 +16,13 @@ No cloud. No warehouse. No telemetry in the extension. Your export stays on your
 
 ```sql
 -- duckdb -unsigned
-LOAD '…/apple_health.duckdb_extension';
+LOAD '…/healthkit_export.duckdb_extension';
 
-FROM read_apple_health('export.zip');
-FROM apple_health_workouts('export.zip');
-FROM apple_health_activity_summaries('export.zip');
-FROM apple_health_workout_routes('export.zip');
-FROM apple_health_workout_route_points('export.zip');
+FROM read_healthkit_export('export.zip');
+FROM healthkit_workouts('export.zip');
+FROM healthkit_activity_summaries('export.zip');
+FROM healthkit_workout_routes('export.zip');
+FROM healthkit_workout_route_points('export.zip');
 ```
 
 **Who it's for**
@@ -66,9 +66,9 @@ Docs: README · [PERSONA](https://github.com/Mjboothaus/duckdb-apple-health/blob
 Open-sourcing **duckdb-apple-health**: Apple Health `export.zip` → DuckDB SQL **in-process** (C, stable C API, unsigned load).
 
 ```sql
-FROM read_apple_health('export.zip');
-FROM apple_health_workouts('export.zip');
-FROM apple_health_workout_route_points('export.zip');
+FROM read_healthkit_export('export.zip');
+FROM healthkit_workouts('export.zip');
+FROM healthkit_workout_route_points('export.zip');
 ```
 
 HealthKit-shaped (not generic XML). Scan once → Parquet or a local DB for the fast path. Synthetic fixtures in git; your real export never has to leave the laptop.
@@ -106,7 +106,7 @@ Feedback welcome from DuckDB + Apple Health folks — especially on streaming/ex
 ## What not to claim (checklist)
 
 - [ ] Not "App Store app" or one-click for non-technical users
-- [ ] Not community `INSTALL apple_health` yet
+- [ ] Not community `INSTALL healthkit_export` yet
 - [ ] Not live HealthKit sync
 - [ ] Not medical advice / clinical decision support
 - [ ] Do not paste personal HR, GPS, or photo paths in the post or comments

@@ -13,17 +13,17 @@ from tests.helpers import duck_records, duck_summaries, duck_route_points, duck_
 def test_extension_loads(con, fixture_zip):
     # Table function is registered and callable
     n = con.execute(
-        f"SELECT count(*) FROM read_apple_health('{fixture_zip.as_posix()}')"
+        f"SELECT count(*) FROM read_healthkit_export('{fixture_zip.as_posix()}')"
     ).fetchone()[0]
     assert n == 7
 
 
 def test_fixture_record_count_zip_and_xml(con, fixture_zip, fixture_xml):
     n_zip = con.execute(
-        f"SELECT count(*) FROM read_apple_health('{sql_path(fixture_zip)}')"
+        f"SELECT count(*) FROM read_healthkit_export('{sql_path(fixture_zip)}')"
     ).fetchone()[0]
     n_xml = con.execute(
-        f"SELECT count(*) FROM read_apple_health('{sql_path(fixture_xml)}')"
+        f"SELECT count(*) FROM read_healthkit_export('{sql_path(fixture_xml)}')"
     ).fetchone()[0]
     assert n_zip == 7
     assert n_xml == 7
@@ -60,7 +60,7 @@ def test_fixture_matches_golden_csv(con, fixture_zip, golden_records_csv):
 def test_fixture_sleep_value_text(con, fixture_zip):
     sleep = con.execute(
         f"""
-        SELECT value, value_text FROM read_apple_health('{sql_path(fixture_zip)}')
+        SELECT value, value_text FROM read_healthkit_export('{sql_path(fixture_zip)}')
         WHERE type_short = 'SleepAnalysis'
         """
     ).fetchdf()
@@ -72,7 +72,7 @@ def test_fixture_sleep_value_text(con, fixture_zip):
 def test_fixture_cafe_source_name(con, fixture_zip):
     n = con.execute(
         f"""
-        SELECT count(*) FROM read_apple_health('{sql_path(fixture_zip)}')
+        SELECT count(*) FROM read_healthkit_export('{sql_path(fixture_zip)}')
         WHERE source_name = 'Café Run Club'
         """
     ).fetchone()[0]
@@ -82,7 +82,7 @@ def test_fixture_cafe_source_name(con, fixture_zip):
 def test_fixture_dates_are_timestamptz(con, fixture_zip):
     t = con.execute(
         f"""
-        SELECT typeof(start_date) FROM read_apple_health('{sql_path(fixture_zip)}') LIMIT 1
+        SELECT typeof(start_date) FROM read_healthkit_export('{sql_path(fixture_zip)}') LIMIT 1
         """
     ).fetchone()[0]
     assert t == "TIMESTAMP WITH TIME ZONE"
@@ -90,7 +90,7 @@ def test_fixture_dates_are_timestamptz(con, fixture_zip):
 
 def test_fixture_filename_from_zip_member(con, fixture_zip):
     name = con.execute(
-        f"SELECT DISTINCT filename FROM read_apple_health('{sql_path(fixture_zip)}')"
+        f"SELECT DISTINCT filename FROM read_healthkit_export('{sql_path(fixture_zip)}')"
     ).fetchone()[0]
     assert name.endswith("export.xml")
     assert "apple_health_export" in name or name == "export.xml"
@@ -121,7 +121,7 @@ def test_fixture_activity_summaries_old_and_new_attrs(con, fixture_xml):
 def test_directory_path(con, fixture_xml, repo_root):
     data_dir = fixture_xml.parent
     n = con.execute(
-        f"SELECT count(*) FROM read_apple_health('{sql_path(data_dir)}')"
+        f"SELECT count(*) FROM read_healthkit_export('{sql_path(data_dir)}')"
     ).fetchone()[0]
     assert n == 7
 

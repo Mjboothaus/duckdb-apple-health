@@ -20,7 +20,7 @@ Import: `health_data_store`. Class name stays `HealthDataStore`.
 
 | In this repo | Role |
 |--------------|------|
-| C extension (`apple_health`) | Layer A — scanner; future community `INSTALL` candidate |
+| C extension (`healthkit_export`) | Layer A — scanner; future community `INSTALL` candidate |
 | `health-data-store` Python | Layers B/C — local DB, maps helpers, scripts, experimental notebooks |
 
 **Do not** split to a second GitHub repo until the extension is on community (or clearly blocked) *and* the Python package has independent users. One clone, one VERSION line of sight, simpler for the persona.
@@ -32,8 +32,8 @@ When community publish lands, the **extension binary** is built from this same r
 Target UX:
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
 ```
 
 That is the supported “publish” path: PR a single `extensions/apple_health/description.yml` to [duckdb/community-extensions](https://github.com/duckdb/community-extensions); DuckDB CI builds, signs, hosts.

@@ -15,13 +15,13 @@ from .store import (
     DEFAULT_DB_PATH,
     ExtensionLoadInfo,
     HealthDataStore,
-    connect_with_apple_health,
+    connect_with_healthkit_export,
     find_extension,
-    load_apple_health,
+    load_healthkit_export,
     repo_root,
 )
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 __all__ = [
     "DEFAULT_DB_PATH",
@@ -29,14 +29,14 @@ __all__ = [
     "HealthDataStore",
     "ReverseGeocoder",
     "build_route_map",
-    "connect_with_apple_health",
+    "connect_with_healthkit_export",
     "create_journey",
     "downsample_points",
     "filmstrip_html",
     "find_extension",
     "format_nominatim_address",
     "import_journey_manifest",
-    "load_apple_health",
+    "load_healthkit_export",
     "materialise_walk_photos",
     "match_photos_to_walks",
     "repo_root",

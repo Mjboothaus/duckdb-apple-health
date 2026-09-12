@@ -1,4 +1,4 @@
-"""Helpers for comparing apple_health extension output to healthkit-to-sqlite."""
+"""Helpers for comparing healthkit_export output to healthkit-to-sqlite."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def duck_records(con: duckdb.DuckDBPyConnection, path: Path):
         f"""
         SELECT type, type_short, unit, value, value_text,
                start_date, end_date, source_name, source_version
-        FROM read_apple_health('{sql_path(path)}')
+        FROM read_healthkit_export('{sql_path(path)}')
         ORDER BY start_date, type_short, value NULLS FIRST, value_text
         """
     ).fetchdf()
@@ -32,7 +32,7 @@ def duck_workouts(con: duckdb.DuckDBPyConnection, path: Path):
         SELECT activity_type, activity_type_short, duration, duration_unit,
                total_distance, total_distance_unit, total_energy, total_energy_unit,
                source_name
-        FROM apple_health_workouts('{sql_path(path)}')
+        FROM healthkit_workouts('{sql_path(path)}')
         ORDER BY start_date, activity_type_short
         """
     ).fetchdf()
@@ -42,7 +42,7 @@ def duck_workout_routes(con: duckdb.DuckDBPyConnection, path: Path):
     return con.execute(
         f"""
         SELECT workout_activity_type_short, gpx_path, source_name
-        FROM apple_health_workout_routes('{sql_path(path)}')
+        FROM healthkit_workout_routes('{sql_path(path)}')
         ORDER BY start_date, gpx_path
         """
     ).fetchdf()
@@ -52,7 +52,7 @@ def duck_route_points(con: duckdb.DuckDBPyConnection, path: Path):
     return con.execute(
         f"""
         SELECT gpx_path, point_index, lat, lon, ele, time
-        FROM apple_health_workout_route_points('{sql_path(path)}')
+        FROM healthkit_workout_route_points('{sql_path(path)}')
         ORDER BY gpx_path, point_index
         """
     ).fetchdf()
@@ -67,7 +67,7 @@ def duck_summaries(con: duckdb.DuckDBPyConnection, path: Path):
                apple_move_time,
                apple_exercise_time,
                apple_stand_hours
-        FROM apple_health_activity_summaries('{sql_path(path)}')
+        FROM healthkit_activity_summaries('{sql_path(path)}')
         ORDER BY date_components
         """
     ).fetchdf()

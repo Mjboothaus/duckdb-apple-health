@@ -30,8 +30,8 @@ project(${EXTENSION_NAME} LANGUAGES C)
 
 # Create Extension library
 set(EXTENSION_SOURCES
-        src/apple_health_tf.c
-        src/apple_health_extension.c
+        src/healthkit_export_tf.c
+        src/healthkit_export_extension.c
         src/parse_health.c
         src/zip_source.c
         src/parse_gpx.c

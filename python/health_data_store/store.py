@@ -14,10 +14,10 @@ import pandas as pd
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = _REPO_ROOT / "output" / "apple_health.duckdb"
 _EXT_CANDIDATES = [
-    _REPO_ROOT / "build/debug/extension/apple_health/apple_health.duckdb_extension",
-    _REPO_ROOT / "build/debug/apple_health.duckdb_extension",
-    _REPO_ROOT / "build/release/extension/apple_health/apple_health.duckdb_extension",
-    _REPO_ROOT / "build/release/apple_health.duckdb_extension",
+    _REPO_ROOT / "build/debug/extension/healthkit_export/healthkit_export.duckdb_extension",
+    _REPO_ROOT / "build/debug/healthkit_export.duckdb_extension",
+    _REPO_ROOT / "build/release/extension/healthkit_export/healthkit_export.duckdb_extension",
+    _REPO_ROOT / "build/release/healthkit_export.duckdb_extension",
 ]
 
 
@@ -31,15 +31,15 @@ def find_extension() -> Path:
         if path.is_file():
             return path
     raise FileNotFoundError(
-        "apple_health.duckdb_extension not found. "
-        "Prefer: INSTALL apple_health FROM community (DuckDB 1.5.5+, macOS), "
+        "healthkit_export.duckdb_extension not found. "
+        "Prefer: INSTALL healthkit_export FROM community (DuckDB 1.5.5+, macOS), "
         "or run `just debug` / `just release` for a local unsigned build."
     )
 
 
 @dataclass(frozen=True)
 class ExtensionLoadInfo:
-    """How ``apple_health`` was loaded into a connection."""
+    """How ``healthkit_export`` was loaded into a connection."""
 
     source: str  # "community" | "local"
     path: Path | None
@@ -47,13 +47,13 @@ class ExtensionLoadInfo:
     detail: str = ""
 
 
-def load_apple_health(
+def load_healthkit_export(
     con: duckdb.DuckDBPyConnection,
     *,
     prefer_community: bool = True,
     allow_local: bool = True,
 ) -> ExtensionLoadInfo:
-    """LOAD ``apple_health`` on an existing connection.
+    """LOAD ``healthkit_export`` on an existing connection.
 
     Tries community install first (signed, no ``-unsigned``). Falls back to a
     local ``build/…`` binary when present. The connection must already allow
@@ -65,13 +65,13 @@ def load_apple_health(
 
     if prefer_community:
         try:
-            con.execute("INSTALL apple_health FROM community")
-            con.execute("LOAD apple_health")
+            con.execute("INSTALL healthkit_export FROM community")
+            con.execute("LOAD healthkit_export")
             return ExtensionLoadInfo(
                 source="community",
                 path=None,
                 duckdb_version=version,
-                detail="INSTALL apple_health FROM community",
+                detail="INSTALL healthkit_export FROM community",
             )
         except Exception as exc:  # noqa: BLE001 — try local next
             errors.append(f"community: {exc}")
@@ -91,19 +91,19 @@ def load_apple_health(
 
     joined = "; ".join(errors) if errors else "no sources tried"
     raise RuntimeError(
-        "Could not LOAD apple_health. "
+        "Could not LOAD healthkit_export. "
         "Need DuckDB **1.5.5+** on **macOS** for community install, "
         "or a local unsigned build (`just debug`). "
         f"Details: {joined}"
     )
 
 
-def connect_with_apple_health(
+def connect_with_healthkit_export(
     *,
     prefer_community: bool = True,
     allow_local: bool = True,
 ) -> tuple[duckdb.DuckDBPyConnection, ExtensionLoadInfo]:
-    """Open an in-memory DuckDB connection with ``apple_health`` loaded.
+    """Open an in-memory DuckDB connection with ``healthkit_export`` loaded.
 
     Community path uses a normal connection. Local fallback reconnects with
     ``allow_unsigned_extensions`` so developer builds still work.
@@ -111,7 +111,7 @@ def connect_with_apple_health(
     if prefer_community:
         con = duckdb.connect()
         try:
-            info = load_apple_health(
+            info = load_healthkit_export(
                 con, prefer_community=True, allow_local=False
             )
             return con, info
@@ -120,7 +120,7 @@ def connect_with_apple_health(
 
     if not allow_local:
         raise RuntimeError(
-            "Community INSTALL apple_health failed and local fallback is disabled."
+            "Community INSTALL healthkit_export failed and local fallback is disabled."
         )
 
     ext = find_extension()
@@ -794,7 +794,7 @@ class HealthDataStore:
         db_sql = _sql_str(out.as_posix())
 
         t0 = time.perf_counter()
-        con, _ext_info = connect_with_apple_health(prefer_community=True, allow_local=True)
+        con, _ext_info = connect_with_healthkit_export(prefer_community=True, allow_local=True)
         try:
             con.execute(f"ATTACH '{db_sql}' AS health")
             con.execute("CREATE SCHEMA IF NOT EXISTS health.gps")
@@ -808,7 +808,7 @@ class HealthDataStore:
                   total_distance, total_distance_unit, total_energy, total_energy_unit,
                   start_date, end_date, creation_date, source_name, source_version,
                   device, filename AS export_member
-                FROM apple_health_workouts('{path_sql}')
+                FROM healthkit_workouts('{path_sql}')
                 WHERE activity_type_short IN ({in_list})
                 """
             )
@@ -822,7 +822,7 @@ class HealthDataStore:
                   start_date AS route_start_date, end_date AS route_end_date,
                   creation_date, source_name, source_version, device,
                   gpx_path, filename AS export_member
-                FROM apple_health_workout_routes('{path_sql}')
+                FROM healthkit_workout_routes('{path_sql}')
                 WHERE workout_activity_type_short IN ({in_list})
                   AND gpx_path IS NOT NULL AND length(gpx_path) > 0
                 """
@@ -836,7 +836,7 @@ class HealthDataStore:
                   workout_start_date, workout_end_date, point_index,
                   lat, lon, ele, time AS point_time,
                   speed, course, h_acc, v_acc, filename AS export_member
-                FROM apple_health_workout_route_points('{path_sql}')
+                FROM healthkit_workout_route_points('{path_sql}')
                 WHERE workout_activity_type_short IN ({in_list})
                 """
             )

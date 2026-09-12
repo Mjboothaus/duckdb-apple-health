@@ -48,10 +48,10 @@ Each rung is optional after the previous; **stopping early is success**.
 ### Rung 1 — Core unlock: SQL on a fixture (~5–15 min)
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
-FROM read_apple_health('test/data/export.zip');  -- clone repo for fixture, or use your zip
-FROM apple_health_workouts('test/data/export.zip');
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
+FROM read_healthkit_export('test/data/export.zip');  -- clone repo for fixture, or use your zip
+FROM healthkit_workouts('test/data/export.zip');
 ```
 
 Developers who prefer building from source: `just bootstrap` then unsigned `LOAD` (see [QUICKSTART.md](QUICKSTART.md)).
@@ -62,10 +62,10 @@ Developers who prefer building from source: `just bootstrap` then unsigned `LOAD
 ### Rung 2 — Core unlock: their export (30–90+ min, size-dependent)
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
 SELECT type_short, count(*) AS n
-FROM read_apple_health('/path/to/export.zip')  -- keep zip outside the repo
+FROM read_healthkit_export('/path/to/export.zip')  -- keep zip outside the repo
 GROUP BY 1
 ORDER BY n DESC
 LIMIT 20;
@@ -76,7 +76,7 @@ Fast path they should learn immediately:
 ```sql
 COPY (
   SELECT *
-  FROM read_apple_health('/path/to/export.zip')
+  FROM read_healthkit_export('/path/to/export.zip')
   WHERE type_short = 'HeartRate'
 ) TO 'hr.parquet' (FORMAT parquet);
 ```

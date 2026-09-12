@@ -19,7 +19,7 @@ Get to a **reviewable first release** with three clear layers:
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │  LAYER A — Core extension (C, Apache-2.0, privacy-hard)     │
-│  read_apple_health / workouts / summaries / routes / points │
+│  read_healthkit_export / workouts / summaries / routes / points │
 │  fixtures · SQLLogic · pytest · unsigned LOAD               │
 └───────────────────────────┬─────────────────────────────────┘
                             │ just build-db (scan once)
@@ -81,7 +81,7 @@ Prefer **core first**, then add-ons maturity, so extension-only users are not bl
 
 | Artefact | Publish path | v0.1 |
 |----------|--------------|------|
-| Extension | Community `INSTALL apple_health FROM community` when C-API CI allows; until then unsigned `LOAD` / optional GH Release binaries | Core freeze + tag; community PR **after** gates |
+| Extension | Community `INSTALL healthkit_export FROM community` when C-API CI allows; until then unsigned `LOAD` / optional GH Release binaries | Core freeze + tag; community PR **after** gates |
 | Python | Editable `uv sync`; optional later PyPI `health-data-store[maps,…]` | Package structure yes; PyPI **not** required |
 | Marimo maps/stories | In-repo notebooks only | **Experimental** — not a release blocker |
 

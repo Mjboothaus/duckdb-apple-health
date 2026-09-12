@@ -1,6 +1,6 @@
 #include "duckdb_extension.h"
 
-#include "apple_health_tf.h"
+#include "healthkit_export_tf.h"
 #include "parse_health.h"
 #include "zip_source.h"
 #include "parse_gpx.h"
@@ -91,7 +91,7 @@ static void AssignTimestamp(duckdb_vector vec, uint64_t *validity, idx_t row, co
 	}
 }
 
-static void ReadAppleHealthBind(duckdb_bind_info info) {
+static void ReadHealthkitExportBind(duckdb_bind_info info) {
 	duckdb_logical_type varchar_type = duckdb_create_logical_type(DUCKDB_TYPE_VARCHAR);
 	duckdb_logical_type double_type = duckdb_create_logical_type(DUCKDB_TYPE_DOUBLE);
 	duckdb_logical_type ts_type = duckdb_create_logical_type(DUCKDB_TYPE_TIMESTAMP_TZ);
@@ -114,13 +114,13 @@ static void ReadAppleHealthBind(duckdb_bind_info info) {
 	duckdb_destroy_logical_type(&ts_type);
 
 	if (duckdb_bind_get_parameter_count(info) < 1) {
-		duckdb_bind_set_error(info, "read_apple_health requires a path argument");
+		duckdb_bind_set_error(info, "read_healthkit_export requires a path argument");
 		return;
 	}
 
 	duckdb_value path_val = duckdb_bind_get_parameter(info, 0);
 	if (!path_val) {
-		duckdb_bind_set_error(info, "read_apple_health: missing path");
+		duckdb_bind_set_error(info, "read_healthkit_export: missing path");
 		return;
 	}
 	char *path_cstr = duckdb_get_varchar(path_val);
@@ -129,7 +129,7 @@ static void ReadAppleHealthBind(duckdb_bind_info info) {
 			duckdb_free(path_cstr);
 		}
 		duckdb_destroy_value(&path_val);
-		duckdb_bind_set_error(info, "read_apple_health: empty path");
+		duckdb_bind_set_error(info, "read_healthkit_export: empty path");
 		return;
 	}
 
@@ -150,7 +150,7 @@ static void ReadAppleHealthBind(duckdb_bind_info info) {
 	ah_xml_source *src = ah_xml_source_open(bind->path, err, sizeof(err));
 	if (!src) {
 		char msg[320];
-		snprintf(msg, sizeof(msg), "read_apple_health: cannot open '%s': %s", bind->path, err[0] ? err : "error");
+		snprintf(msg, sizeof(msg), "read_healthkit_export: cannot open '%s': %s", bind->path, err[0] ? err : "error");
 		DestroyBindData(bind);
 		duckdb_bind_set_error(info, msg);
 		return;
@@ -170,7 +170,7 @@ static void ReadAppleHealthBind(duckdb_bind_info info) {
 	ah_xml_source_close(src);
 	if (rc != 0) {
 		char msg[320];
-		snprintf(msg, sizeof(msg), "read_apple_health: parse failed for '%s'", bind->path);
+		snprintf(msg, sizeof(msg), "read_healthkit_export: parse failed for '%s'", bind->path);
 		DestroyBindData(bind);
 		duckdb_bind_set_error(info, msg);
 		return;
@@ -180,7 +180,7 @@ static void ReadAppleHealthBind(duckdb_bind_info info) {
 	duckdb_bind_set_cardinality(info, (idx_t)bind->count, true);
 }
 
-static void ReadAppleHealthInit(duckdb_init_info info) {
+static void ReadHealthkitExportInit(duckdb_init_info info) {
 	read_ah_init_data *init = (read_ah_init_data *)duckdb_malloc(sizeof(read_ah_init_data));
 	if (!init) {
 		duckdb_init_set_error(info, "out of memory");
@@ -190,7 +190,7 @@ static void ReadAppleHealthInit(duckdb_init_info info) {
 	duckdb_init_set_init_data(info, init, DestroyInitData);
 }
 
-static void ReadAppleHealthFunction(duckdb_function_info info, duckdb_data_chunk output) {
+static void ReadHealthkitExportFunction(duckdb_function_info info, duckdb_data_chunk output) {
 	read_ah_bind_data *bind = (read_ah_bind_data *)duckdb_function_get_bind_data(info);
 	read_ah_init_data *init = (read_ah_init_data *)duckdb_function_get_init_data(info);
 	if (!bind || !init) {
@@ -255,17 +255,17 @@ static void ReadAppleHealthFunction(duckdb_function_info info, duckdb_data_chunk
 	duckdb_data_chunk_set_size(output, n);
 }
 
-void RegisterReadAppleHealthFunction(duckdb_connection connection) {
+void RegisterReadHealthkitExportFunction(duckdb_connection connection) {
 	duckdb_table_function function = duckdb_create_table_function();
-	duckdb_table_function_set_name(function, "read_apple_health");
+	duckdb_table_function_set_name(function, "read_healthkit_export");
 
 	duckdb_logical_type varchar_type = duckdb_create_logical_type(DUCKDB_TYPE_VARCHAR);
 	duckdb_table_function_add_parameter(function, varchar_type);
 	duckdb_destroy_logical_type(&varchar_type);
 
-	duckdb_table_function_set_bind(function, ReadAppleHealthBind);
-	duckdb_table_function_set_init(function, ReadAppleHealthInit);
-	duckdb_table_function_set_function(function, ReadAppleHealthFunction);
+	duckdb_table_function_set_bind(function, ReadHealthkitExportBind);
+	duckdb_table_function_set_init(function, ReadHealthkitExportInit);
+	duckdb_table_function_set_function(function, ReadHealthkitExportFunction);
 
 	duckdb_state rc = duckdb_register_table_function(connection, function);
 	duckdb_destroy_table_function(&function);
@@ -274,7 +274,7 @@ void RegisterReadAppleHealthFunction(duckdb_connection connection) {
 
 
 /* -------------------------------------------------------------------------- */
-/* apple_health_workouts                                                      */
+/* healthkit_workouts                                                      */
 /* -------------------------------------------------------------------------- */
 
 typedef struct {
@@ -387,7 +387,7 @@ static void WorkoutsBind(duckdb_bind_info info) {
 	duckdb_destroy_logical_type(&double_type);
 	duckdb_destroy_logical_type(&ts_type);
 
-	char *path = BindPathOrError(info, "apple_health_workouts");
+	char *path = BindPathOrError(info, "healthkit_workouts");
 	if (!path) {
 		return;
 	}
@@ -406,7 +406,7 @@ static void WorkoutsBind(duckdb_bind_info info) {
 	ah_xml_source *src = ah_xml_source_open(bind->path, err, sizeof(err));
 	if (!src) {
 		char msg[320];
-		snprintf(msg, sizeof(msg), "apple_health_workouts: cannot open '%s': %s", bind->path, err[0] ? err : "error");
+		snprintf(msg, sizeof(msg), "healthkit_workouts: cannot open '%s': %s", bind->path, err[0] ? err : "error");
 		DestroyWorkoutsBind(bind);
 		duckdb_bind_set_error(info, msg);
 		return;
@@ -426,7 +426,7 @@ static void WorkoutsBind(duckdb_bind_info info) {
 	ah_xml_source_close(src);
 	if (rc != 0) {
 		DestroyWorkoutsBind(bind);
-		duckdb_bind_set_error(info, "apple_health_workouts: parse failed");
+		duckdb_bind_set_error(info, "healthkit_workouts: parse failed");
 		return;
 	}
 
@@ -510,9 +510,9 @@ static void WorkoutsFunction(duckdb_function_info info, duckdb_data_chunk output
 	duckdb_data_chunk_set_size(output, n);
 }
 
-void RegisterAppleHealthWorkoutsFunction(duckdb_connection connection) {
+void RegisterHealthkitWorkoutsFunction(duckdb_connection connection) {
 	duckdb_table_function function = duckdb_create_table_function();
-	duckdb_table_function_set_name(function, "apple_health_workouts");
+	duckdb_table_function_set_name(function, "healthkit_workouts");
 
 	duckdb_logical_type varchar_type = duckdb_create_logical_type(DUCKDB_TYPE_VARCHAR);
 	duckdb_table_function_add_parameter(function, varchar_type);
@@ -527,7 +527,7 @@ void RegisterAppleHealthWorkoutsFunction(duckdb_connection connection) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* apple_health_activity_summaries                                            */
+/* healthkit_activity_summaries                                            */
 /* -------------------------------------------------------------------------- */
 
 typedef struct {
@@ -584,7 +584,7 @@ static void SummariesBind(duckdb_bind_info info) {
 	duckdb_destroy_logical_type(&varchar_type);
 	duckdb_destroy_logical_type(&double_type);
 
-	char *path = BindPathOrError(info, "apple_health_activity_summaries");
+	char *path = BindPathOrError(info, "healthkit_activity_summaries");
 	if (!path) {
 		return;
 	}
@@ -603,7 +603,7 @@ static void SummariesBind(duckdb_bind_info info) {
 	ah_xml_source *src = ah_xml_source_open(bind->path, err, sizeof(err));
 	if (!src) {
 		char msg[320];
-		snprintf(msg, sizeof(msg), "apple_health_activity_summaries: cannot open '%s': %s", bind->path,
+		snprintf(msg, sizeof(msg), "healthkit_activity_summaries: cannot open '%s': %s", bind->path,
 		         err[0] ? err : "error");
 		DestroySummariesBind(bind);
 		duckdb_bind_set_error(info, msg);
@@ -624,7 +624,7 @@ static void SummariesBind(duckdb_bind_info info) {
 	ah_xml_source_close(src);
 	if (rc != 0) {
 		DestroySummariesBind(bind);
-		duckdb_bind_set_error(info, "apple_health_activity_summaries: parse failed");
+		duckdb_bind_set_error(info, "healthkit_activity_summaries: parse failed");
 		return;
 	}
 
@@ -680,9 +680,9 @@ static void SummariesFunction(duckdb_function_info info, duckdb_data_chunk outpu
 	duckdb_data_chunk_set_size(output, n);
 }
 
-void RegisterAppleHealthActivitySummariesFunction(duckdb_connection connection) {
+void RegisterHealthkitActivitySummariesFunction(duckdb_connection connection) {
 	duckdb_table_function function = duckdb_create_table_function();
-	duckdb_table_function_set_name(function, "apple_health_activity_summaries");
+	duckdb_table_function_set_name(function, "healthkit_activity_summaries");
 
 	duckdb_logical_type varchar_type = duckdb_create_logical_type(DUCKDB_TYPE_VARCHAR);
 	duckdb_table_function_add_parameter(function, varchar_type);
@@ -697,7 +697,7 @@ void RegisterAppleHealthActivitySummariesFunction(duckdb_connection connection) 
 }
 
 /* -------------------------------------------------------------------------- */
-/* apple_health_workout_routes                                                */
+/* healthkit_workout_routes                                                */
 /* -------------------------------------------------------------------------- */
 
 typedef struct {
@@ -753,7 +753,7 @@ static void RoutesBind(duckdb_bind_info info) {
 	duckdb_destroy_logical_type(&varchar_type);
 	duckdb_destroy_logical_type(&ts_type);
 
-	char *path = BindPathOrError(info, "apple_health_workout_routes");
+	char *path = BindPathOrError(info, "healthkit_workout_routes");
 	if (!path) {
 		return;
 	}
@@ -772,7 +772,7 @@ static void RoutesBind(duckdb_bind_info info) {
 	ah_xml_source *src = ah_xml_source_open(bind->path, err, sizeof(err));
 	if (!src) {
 		char msg[320];
-		snprintf(msg, sizeof(msg), "apple_health_workout_routes: cannot open '%s': %s", bind->path,
+		snprintf(msg, sizeof(msg), "healthkit_workout_routes: cannot open '%s': %s", bind->path,
 		         err[0] ? err : "error");
 		DestroyRoutesBind(bind);
 		duckdb_bind_set_error(info, msg);
@@ -793,7 +793,7 @@ static void RoutesBind(duckdb_bind_info info) {
 	ah_xml_source_close(src);
 	if (rc != 0) {
 		DestroyRoutesBind(bind);
-		duckdb_bind_set_error(info, "apple_health_workout_routes: parse failed");
+		duckdb_bind_set_error(info, "healthkit_workout_routes: parse failed");
 		return;
 	}
 
@@ -859,9 +859,9 @@ static void RoutesFunction(duckdb_function_info info, duckdb_data_chunk output) 
 	duckdb_data_chunk_set_size(output, n);
 }
 
-void RegisterAppleHealthWorkoutRoutesFunction(duckdb_connection connection) {
+void RegisterHealthkitWorkoutRoutesFunction(duckdb_connection connection) {
 	duckdb_table_function function = duckdb_create_table_function();
-	duckdb_table_function_set_name(function, "apple_health_workout_routes");
+	duckdb_table_function_set_name(function, "healthkit_workout_routes");
 
 	duckdb_logical_type varchar_type = duckdb_create_logical_type(DUCKDB_TYPE_VARCHAR);
 	duckdb_table_function_add_parameter(function, varchar_type);
@@ -876,7 +876,7 @@ void RegisterAppleHealthWorkoutRoutesFunction(duckdb_connection connection) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* apple_health_workout_route_points                                          */
+/* healthkit_workout_route_points                                          */
 /* -------------------------------------------------------------------------- */
 
 typedef struct {
@@ -964,7 +964,7 @@ static void PointsBind(duckdb_bind_info info) {
 	duckdb_destroy_logical_type(&bigint_type);
 	duckdb_destroy_logical_type(&ts_type);
 
-	char *path = BindPathOrError(info, "apple_health_workout_route_points");
+	char *path = BindPathOrError(info, "healthkit_workout_route_points");
 	if (!path) {
 		return;
 	}
@@ -983,7 +983,7 @@ static void PointsBind(duckdb_bind_info info) {
 	ah_xml_source *src = ah_xml_source_open(bind->path, err, sizeof(err));
 	if (!src) {
 		char msg[320];
-		snprintf(msg, sizeof(msg), "apple_health_workout_route_points: cannot open '%s': %s", bind->path,
+		snprintf(msg, sizeof(msg), "healthkit_workout_route_points: cannot open '%s': %s", bind->path,
 		         err[0] ? err : "error");
 		DestroyPointsBind(bind);
 		duckdb_bind_set_error(info, msg);
@@ -1007,7 +1007,7 @@ static void PointsBind(duckdb_bind_info info) {
 	if (rc != 0) {
 		free(routes.routes);
 		DestroyPointsBind(bind);
-		duckdb_bind_set_error(info, "apple_health_workout_route_points: export parse failed");
+		duckdb_bind_set_error(info, "healthkit_workout_route_points: export parse failed");
 		return;
 	}
 
@@ -1030,7 +1030,7 @@ static void PointsBind(duckdb_bind_info info) {
 		if (grc != 0) {
 			free(routes.routes);
 			DestroyPointsBind(bind);
-			duckdb_bind_set_error(info, "apple_health_workout_route_points: gpx parse failed");
+			duckdb_bind_set_error(info, "healthkit_workout_route_points: gpx parse failed");
 			return;
 		}
 	}
@@ -1104,9 +1104,9 @@ static void PointsFunction(duckdb_function_info info, duckdb_data_chunk output) 
 	duckdb_data_chunk_set_size(output, n);
 }
 
-void RegisterAppleHealthWorkoutRoutePointsFunction(duckdb_connection connection) {
+void RegisterHealthkitWorkoutRoutePointsFunction(duckdb_connection connection) {
 	duckdb_table_function function = duckdb_create_table_function();
-	duckdb_table_function_set_name(function, "apple_health_workout_route_points");
+	duckdb_table_function_set_name(function, "healthkit_workout_route_points");
 
 	duckdb_logical_type varchar_type = duckdb_create_logical_type(DUCKDB_TYPE_VARCHAR);
 	duckdb_table_function_add_parameter(function, varchar_type);

@@ -57,11 +57,11 @@ No persistent schema — each call scans `path`:
 
 | Function | One row means |
 |---|---|
-| `apple_health_workouts(path)` | A workout summary (type, duration, distance, energy, dates) |
-| `apple_health_workout_routes(path)` | A GPS route index (`gpx_path` + parent workout dates/type) |
-| `apple_health_workout_route_points(path)` | One GPS point (`lat`/`lon`/…) |
-| `read_apple_health(path)` | A Health record sample |
-| `apple_health_activity_summaries(path)` | One day of rings |
+| `healthkit_workouts(path)` | A workout summary (type, duration, distance, energy, dates) |
+| `healthkit_workout_routes(path)` | A GPS route index (`gpx_path` + parent workout dates/type) |
+| `healthkit_workout_route_points(path)` | One GPS point (`lat`/`lon`/…) |
+| `read_healthkit_export(path)` | A Health record sample |
+| `healthkit_activity_summaries(path)` | One day of rings |
 
 ```mermaid
 erDiagram

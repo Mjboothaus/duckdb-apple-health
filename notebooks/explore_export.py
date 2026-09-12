@@ -10,7 +10,7 @@
 # ///
 """Explore an Apple Health export.zip via the apple_health DuckDB extension.
 
-Loads **community** ``apple_health`` when available (DuckDB 1.5.5+, macOS),
+Loads **community** ``healthkit_export`` when available (DuckDB 1.5.5+, macOS),
 with fallback to a local unsigned ``just debug`` / ``just release`` build.
 
 Default export path is the synthetic fixture. Point ``export_path`` at a real
@@ -46,7 +46,7 @@ def _(Path, mo):
     if _python not in sys.path:
         sys.path.insert(0, _python)
 
-    from health_data_store import connect_with_apple_health
+    from health_data_store import connect_with_healthkit_export
 
     default_export = str(repo_root / "test" / "data" / "export.zip")
     # Example real export (outside git):
@@ -79,7 +79,7 @@ def _(Path, mo):
                 """
     # Apple Health × DuckDB
 
-    Interactive scan of an Apple Health export through the **`apple_health`**
+    Interactive scan of an Apple Health export through the **`healthkit_export`**
     community extension (falls back to a local unsigned build if needed).
 
     For **walk / hike GPS maps**, use the separate notebook `notebooks/map_walks.py` (`just map-walks`).
@@ -93,19 +93,19 @@ def _(Path, mo):
             materialise,
         ]
     )
-    return connect_with_apple_health, export_path, materialise, repo_root, selected_types
+    return connect_with_healthkit_export, export_path, materialise, repo_root, selected_types
 
 
 @app.cell
-def _(Path, connect_with_apple_health, export_path, mo, repo_root):
+def _(Path, connect_with_healthkit_export, export_path, mo, repo_root):
     zip_path = Path(export_path.value).expanduser()
     if not zip_path.exists():
         raise FileNotFoundError(f"Export not found: {zip_path}")
 
-    con, ext_info = connect_with_apple_health(prefer_community=True, allow_local=True)
+    con, ext_info = connect_with_healthkit_export(prefer_community=True, allow_local=True)
 
     if ext_info.source == "community":
-        ext_display = "community (INSTALL apple_health FROM community)"
+        ext_display = "community (INSTALL healthkit_export FROM community)"
     elif ext_info.path is not None:
         try:
             ext_display = str(ext_info.path.relative_to(repo_root))
@@ -146,11 +146,11 @@ def _(mo, timed, zip_path):
     path_sql = zip_path.as_posix().replace("'", "''")
 
     counts_sql = f"""
-    SELECT 'records' AS kind, count(*)::BIGINT AS n FROM read_apple_health('{path_sql}')
+    SELECT 'records' AS kind, count(*)::BIGINT AS n FROM read_healthkit_export('{path_sql}')
     UNION ALL
-    SELECT 'workouts', count(*)::BIGINT FROM apple_health_workouts('{path_sql}')
+    SELECT 'workouts', count(*)::BIGINT FROM healthkit_workouts('{path_sql}')
     UNION ALL
-    SELECT 'activity_days', count(*)::BIGINT FROM apple_health_activity_summaries('{path_sql}')
+    SELECT 'activity_days', count(*)::BIGINT FROM healthkit_activity_summaries('{path_sql}')
     """
     counts_df, counts_s = timed(counts_sql)
 
@@ -171,7 +171,7 @@ def _(mo, timed, zip_path):
 def _(mo, path_sql, timed):
     types_sql = f"""
     SELECT type_short, count(*)::BIGINT AS n, count(value)::BIGINT AS n_numeric
-    FROM read_apple_health('{path_sql}')
+    FROM read_healthkit_export('{path_sql}')
     GROUP BY 1
     ORDER BY n DESC
     """
@@ -211,7 +211,7 @@ def _(mo, path_sql, timed):
       avg(duration) AS avg_duration,
       avg(total_distance) AS avg_distance,
       avg(total_energy) AS avg_energy
-    FROM apple_health_workouts('{path_sql}')
+    FROM healthkit_workouts('{path_sql}')
     GROUP BY 1
     ORDER BY n DESC
     """
@@ -236,7 +236,7 @@ def _(mo, path_sql, timed):
       avg(apple_move_time) AS avg_move_time_ios14,
       avg(apple_exercise_time) AS avg_exercise,
       avg(apple_stand_hours) AS avg_stand
-    FROM apple_health_activity_summaries('{path_sql}')
+    FROM healthkit_activity_summaries('{path_sql}')
     """
     rings_df, rings_s = timed(rings_sql)
 
@@ -247,7 +247,7 @@ def _(mo, path_sql, timed):
            apple_move_time,
            apple_exercise_time,
            apple_stand_hours
-    FROM apple_health_activity_summaries('{path_sql}')
+    FROM healthkit_activity_summaries('{path_sql}')
     ORDER BY date_components DESC
     LIMIT 14
     """
@@ -278,7 +278,7 @@ def _(con, materialise, mo, path_sql, pd, repo_root, selected_types, time):
             sql = f"""
             COPY (
               SELECT *
-              FROM read_apple_health('{path_sql}')
+              FROM read_healthkit_export('{path_sql}')
               WHERE type_short = '{type_short.replace("'", "''")}'
             ) TO '{out_path.as_posix()}' (FORMAT parquet)
             """
@@ -403,7 +403,7 @@ def _(
     - Table functions parse in **bind** and buffer rows — memory scales with export size.
     - Re-running cells re-scans the zip unless you query Parquet instead.
     - Named filters (`types` / `start` / `end`) are planned; filter in SQL or COPY for now.
-    - Prefer **DuckDB 1.5.5+** on **macOS** so `INSTALL apple_health FROM community` works;
+    - Prefer **DuckDB 1.5.5+** on **macOS** so `INSTALL healthkit_export FROM community` works;
       otherwise build locally with `just debug` / `just release` (unsigned fallback).
     """
             ),
@@ -428,8 +428,8 @@ def _(mo):
     Community path (CLI, DuckDB **1.5.5+**, macOS):
 
     ```sql
-    INSTALL apple_health FROM community;
-    LOAD apple_health;
+    INSTALL healthkit_export FROM community;
+    LOAD healthkit_export;
     ```
 
     Point the path field at a real Health export outside the repo, e.g.

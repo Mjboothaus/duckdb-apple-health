@@ -62,8 +62,8 @@ Keep real zips **outside** the repo.
 |---|---|
 | `src/parse_health.*` | Streaming XML (no DuckDB) |
 | `src/zip_source.*` | Zip/dir/file open (no DuckDB) |
-| `src/apple_health_tf.c` | Table functions (DuckDB C API only) |
-| `src/apple_health_extension.c` | Extension entrypoint |
+| `src/healthkit_export_tf.c` | Table functions (DuckDB C API only) |
+| `src/healthkit_export_extension.c` | Extension entrypoint |
 | `tests/` | pytest correctness |
 | `test/sql/` | SQLLogic samples |
 | `scripts/make_fixture.py` | Synthetic export (no PHI) |

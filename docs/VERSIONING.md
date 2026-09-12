@@ -6,7 +6,7 @@ This repo ships **two related artefacts** with coordinated SemVer:
 
 | Artefact | Where the version lives | What consumers see |
 |----------|-------------------------|-------------------|
-| **C extension** (`apple_health.duckdb_extension`) | Git **tag** at build time → `configure/extension_version.txt` → extension metadata | DuckDB `LOAD` metadata / `extension_version` field |
+| **C extension** (`healthkit_export.duckdb_extension`) | Git **tag** at build time → `configure/extension_version.txt` → extension metadata | DuckDB `LOAD` metadata / `extension_version` field |
 | **Python supplementary package** (optional Layer B/C: `python/health_data_store`, notebooks) | `pyproject.toml` `[project].version` and root **`VERSION`** file | `uv` / future pip metadata; docs. **Not** required to use the extension. v0.1 does **not** require PyPI. |
 
 ## Source of truth

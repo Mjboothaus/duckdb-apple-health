@@ -1,6 +1,6 @@
 """Walk stories — multi-day journeys + maps + photos.
 
-Requires a local DB from ``just build-db`` (uses community ``apple_health`` when
+Requires a local DB from ``just build-db`` (uses community ``healthkit_export`` when
 available, else a local unsigned build).
 
 ```bash

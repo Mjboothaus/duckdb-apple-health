@@ -1,4 +1,4 @@
-"""Compare apple_health extension output to dogsheep/healthkit-to-sqlite.
+"""Compare healthkit_export extension output to dogsheep/healthkit-to-sqlite.
 
 Semantic note
 -------------
@@ -11,7 +11,7 @@ same BP samples also appear as top-level Records in real exports and in our fixt
 
 On the synthetic fixture that means:
   healthkit-to-sqlite record rows = 9  (7 top-level + 2 nested BP)
-  read_apple_health rows          = 7  (top-level only)
+  read_healthkit_export rows          = 7  (top-level only)
 
 Comparisons below assert equality on the **deduped / top-level** multiset, and
 document the nested extras explicitly.
@@ -100,7 +100,7 @@ def test_hk_fixture_import_tables(hk_conn):
 
 def test_record_counts_document_correlation_difference(con, fixture_zip, hk_conn):
     duck_n = con.execute(
-        f"SELECT count(*) FROM read_apple_health('{sql_path(fixture_zip)}')"
+        f"SELECT count(*) FROM read_healthkit_export('{sql_path(fixture_zip)}')"
     ).fetchone()[0]
     hk_recs = hk_all_records(hk_conn)
     assert duck_n == 7
@@ -187,13 +187,13 @@ def test_optional_real_export_counts_finite(con, real_export_zip):
     if real_export_zip is None:
         pytest.skip("Set APPLE_HEALTH_EXPORT_ZIP to run real-export checks")
     n = con.execute(
-        f"SELECT count(*) FROM read_apple_health('{sql_path(real_export_zip)}')"
+        f"SELECT count(*) FROM read_healthkit_export('{sql_path(real_export_zip)}')"
     ).fetchone()[0]
     w = con.execute(
-        f"SELECT count(*) FROM apple_health_workouts('{sql_path(real_export_zip)}')"
+        f"SELECT count(*) FROM healthkit_workouts('{sql_path(real_export_zip)}')"
     ).fetchone()[0]
     s = con.execute(
-        f"SELECT count(*) FROM apple_health_activity_summaries('{sql_path(real_export_zip)}')"
+        f"SELECT count(*) FROM healthkit_activity_summaries('{sql_path(real_export_zip)}')"
     ).fetchone()[0]
     assert n > 0
     assert w >= 0

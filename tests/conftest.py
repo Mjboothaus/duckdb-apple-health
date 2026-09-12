@@ -14,9 +14,9 @@ FIXTURE_XML = REPO_ROOT / "test" / "data" / "export.xml"
 GOLDEN_RECORDS = REPO_ROOT / "test" / "data" / "golden" / "records.csv"
 
 EXT_CANDIDATES = [
-    REPO_ROOT / "build/debug/extension/apple_health/apple_health.duckdb_extension",
-    REPO_ROOT / "build/debug/apple_health.duckdb_extension",
-    REPO_ROOT / "build/release/extension/apple_health/apple_health.duckdb_extension",
+    REPO_ROOT / "build/debug/extension/healthkit_export/healthkit_export.duckdb_extension",
+    REPO_ROOT / "build/debug/healthkit_export.duckdb_extension",
+    REPO_ROOT / "build/release/extension/healthkit_export/healthkit_export.duckdb_extension",
 ]
 
 
@@ -25,7 +25,7 @@ def find_extension() -> Path:
         if path.is_file():
             return path
     raise FileNotFoundError(
-        "apple_health.duckdb_extension not found. Run `just debug` before tests."
+        "healthkit_export.duckdb_extension not found. Run `just debug` before tests."
     )
 
 
@@ -59,7 +59,7 @@ def golden_records_csv() -> Path:
 
 @pytest.fixture
 def con(extension_path: Path):
-    """Fresh in-memory DuckDB with the unsigned apple_health extension loaded."""
+    """Fresh in-memory DuckDB with the unsigned healthkit_export extension loaded."""
     connection = duckdb.connect(config={"allow_unsigned_extensions": "true"})
     connection.execute(f"LOAD '{extension_path.as_posix()}'")
     yield connection

@@ -1,15 +1,15 @@
 # name: test/sql/activity_summaries.test
-# description: apple_health_activity_summaries table function
-# group: [apple_health]
+# description: healthkit_activity_summaries table function
+# group: [healthkit_export]
 
-require apple_health
+require healthkit_export
 
 query IIII
 SELECT date_components,
        apple_move_minutes,
        apple_move_time,
        active_energy_burned
-FROM apple_health_activity_summaries('test/data/export.xml')
+FROM healthkit_activity_summaries('test/data/export.xml')
 ORDER BY date_components;
 ----
 2020-06-01	32.0	NULL	410.0
