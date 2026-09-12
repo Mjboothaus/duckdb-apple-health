@@ -4,7 +4,7 @@ Last updated: 2026-09-12.
 
 ## Product frame
 
-**duckdb-apple-health** is for people in the **Apple ecosystem** (Health, and optionally Photos) who are **reasonably technical** and want to **unlock their own health data** — locally, with SQL and optional maps/stories — without handing PHI to a cloud product.
+**duckdb-healthkit-export** is for people in the **Apple ecosystem** (Health, and optionally Photos) who are **reasonably technical** and want to **unlock their own health data** — locally, with SQL and optional maps/stories — without handing PHI to a cloud product.
 
 One-line positioning:
 
@@ -90,7 +90,7 @@ COPY (
 ```bash
 just build-db export_zip=/path/to/export.zip
 just list-walks 20
-duckdb output/apple_health.duckdb
+duckdb output/healthkit_store.duckdb
 ```
 
 ```sql
@@ -98,7 +98,7 @@ SHOW TABLES;
 SELECT * FROM ingest_manifest;
 ```
 
-- **Done when:** `output/apple_health.duckdb` exists; walks list without re-scanning the zip.
+- **Done when:** `output/healthkit_store.duckdb` exists; walks list without re-scanning the zip.
 - **Mental model:** extension scans; **DB is the daily driver**.
 - **Layer:** B (enriched local DB).
 

@@ -1,6 +1,6 @@
 # Design & development guide
 
-Single source of truth for **what** `duckdb-apple-health` is, **how** it is built, and **what must not change** without an explicit decision.
+Single source of truth for **what** `duckdb-healthkit-export` is, **how** it is built, and **what must not change** without an explicit decision.
 
 - Product overview & install: [README.md](../README.md), [QUICKSTART.md](QUICKSTART.md)
 - Forward plan (v0.2+, DuckDB 2.0 packaging): [ROADMAP.md](ROADMAP.md)
@@ -33,7 +33,7 @@ Not a warehouse, MCP server, dashboard, or dbt package.
 
 | Topic | Decision |
 |---|---|
-| GitHub | Public `mjboothaus/duckdb-apple-health` (not the old personal C++ stub) |
+| GitHub | Public `mjboothaus/duckdb-healthkit-export` (not the old personal C++ stub) |
 | Licence | Apache-2.0 |
 | Language | **C.** Thin C++ only if the stable table-function C API is unusable |
 | ABI | Stable C API. No `#include <duckdb.hpp>`, no unstable extension internals |

@@ -19,7 +19,7 @@ from .store import repo_root
 
 DEFAULT_CACHE_PATH = repo_root() / "output" / "geocode_cache.json"
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-USER_AGENT = "duckdb-apple-health/0.1 (local research; contact: github.com/mjboothaus/duckdb-apple-health)"
+USER_AGENT = "duckdb-healthkit-export/0.1 (local research; contact: github.com/mjboothaus/duckdb-healthkit-export)"
 # Round coordinates so nearby points share a cache entry (~11 m at equator).
 COORD_DECIMALS = 4
 MIN_REQUEST_INTERVAL_S = 1.05

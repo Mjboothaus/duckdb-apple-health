@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-12.
 
-**duckdb-apple-health** ships the DuckDB C scanner as community extension
+**duckdb-healthkit-export** ships the DuckDB C scanner as community extension
 **`healthkit_export`** (macOS first):
 
 ```sql
@@ -41,7 +41,7 @@ uploads of your `.duckdb_extension` binaries.
 4. DuckDB **signs** the binaries and hosts them.
 5. Users on a **recent stable** DuckDB get `INSTALL … FROM community`.
 
-You keep developing in **Mjboothaus/duckdb-apple-health**. Community is a **distribution
+You keep developing in **Mjboothaus/duckdb-healthkit-export**. Community is a **distribution
 channel**, not a second source tree (unless you later split monorepo concerns).
 
 ---
@@ -53,7 +53,7 @@ channel**, not a second source tree (unless you later split monorepo concerns).
 | C extension (`src/`, `duckdb_capi/`, template Makefile) | **Yes** — this is what they build |
 | SQLLogic under `test/sql/` | **Yes** — should pass in their CI |
 | Fixture `test/data/` (synthetic only) | **Yes** — needed for tests |
-| Python `health-data-store`, marimo, maps, Photos | **No** — never inside the extension binary |
+| Python `healthkit-store`, marimo, maps, Photos | **No** — never inside the extension binary |
 | Personal `output/`, real exports | **No** — never in git or CI |
 
 Python add-ons remain optional ([PYTHON_PACKAGE.md](PYTHON_PACKAGE.md)). Do **not** try to
@@ -120,7 +120,7 @@ extension:
   # requires_toolchains: ...                            # only if CI needs extras
 
 repo:
-  github: Mjboothaus/duckdb-apple-health
+  github: Mjboothaus/duckdb-healthkit-export
   ref: REPLACE_WITH_COMMIT_SHA_OF_v0.1.0   # not a floating branch name
 
 docs:
@@ -160,7 +160,7 @@ and reports failures on your `ref`.
 
 Community only needs the C tree + tests + fixture. You can later:
 
-- Extract `extension/` into `duckdb-apple-health-ext`, or  
+- Extract `extension/` into `duckdb-healthkit-export-ext`, or  
 - Teach community CI to build from a subdirectory (if supported),
 
 but that is optional. Until then, ensure extension CI paths ignore heavy Python extras.
@@ -263,4 +263,4 @@ Python / walk-stories stay on the “optional add-ons” path and must not gate 
 - Community docs / submit: https://duckdb.org/community_extensions/documentation.html  
 - C API template: https://github.com/duckdb/extension-template-c  
 - Community repo: https://github.com/duckdb/community-extensions  
-- This project: https://github.com/Mjboothaus/duckdb-apple-health  
+- This project: https://github.com/Mjboothaus/duckdb-healthkit-export  

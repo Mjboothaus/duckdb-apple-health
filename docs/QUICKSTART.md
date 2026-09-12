@@ -28,8 +28,8 @@ If install 404s, your DuckDB build is older than the published community artifac
 Needs Xcode CLT, CMake, Python 3, and a DuckDB CLI that can load unsigned extensions.
 
 ```bash
-git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
-cd duckdb-apple-health
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-healthkit-export.git
+cd duckdb-healthkit-export
 brew install cmake ninja ccache just
 just check-tools
 just bootstrap   # configure (if needed) + debug + fixture

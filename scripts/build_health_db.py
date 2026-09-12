@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI: build output/apple_health.duckdb from an Apple Health export."""
+"""CLI: build output/healthkit_store.duckdb from an Apple Health export."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO / "python"))
 
-from health_data_store import HealthDataStore  # noqa: E402
+from healthkit_store import HealthkitStore  # noqa: E402
 
 
 def main() -> None:
@@ -31,7 +31,7 @@ def main() -> None:
     print(f"activities: {activities}")
     print("Scanning export (this can take several minutes on large zips)…", flush=True)
 
-    result = HealthDataStore.build_from_export(
+    result = HealthkitStore.build_from_export(
         args.export_zip,
         db_path=args.db,
         activities=activities,

@@ -382,7 +382,7 @@ wheels = [
 ]
 
 [[package]]
-name = "health-data-store"
+name = "healthkit-store"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [

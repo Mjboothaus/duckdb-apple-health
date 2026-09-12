@@ -1,6 +1,6 @@
 # Roadmap
 
-Living product direction for [duckdb-apple-health](https://github.com/Mjboothaus/duckdb-apple-health).
+Living product direction for [duckdb-healthkit-export](https://github.com/Mjboothaus/duckdb-healthkit-export).
 Operational checklist: [RELEASE_PLAN.md](RELEASE_PLAN.md). Audience: [PERSONA.md](PERSONA.md).
 Versioning: [VERSIONING.md](VERSIONING.md).
 
@@ -9,7 +9,7 @@ Versioning: [VERSIONING.md](VERSIONING.md).
 | Layer | What | Ships when |
 |-------|------|------------|
 | **A — Core extension** | C + stable C API: zip/XML → typed table functions | **v0.1.0** (first public release) |
-| **B — Enriched local store** | Optional Python: `build-db`, Parquet, `HealthDataStore`, views | usable now; package polish with / after v0.1 |
+| **B — Enriched local store** | Optional Python: `build-db`, Parquet, `HealthkitStore`, views | usable now; package polish with / after v0.1 |
 | **C — Experience add-ons** | Photos ATTACH, journeys YAML, Folium maps, marimo walk-stories | optional; not required for extension release |
 
 Core first. Add-ons must not block the extension binary or community-extension path.
@@ -45,7 +45,7 @@ Raw XML scan is intentionally the **slow path**; Parquet / local DuckDB is the *
 
 - [x] Phase 1 core freeze — tag **v0.1.0**
 - [x] Community extension on **macOS** — tag **v0.1.1**, [PR #2653](https://github.com/duckdb/community-extensions/pull/2653)
-- [x] Python tree as optional supplementary package (`health-data-store`)
+- [x] Python tree as optional supplementary package (`healthkit-store`)
 
 ## Near-term
 

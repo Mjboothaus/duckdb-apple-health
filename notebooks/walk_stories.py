@@ -29,12 +29,12 @@ def _():
     if py_path not in sys.path:
         sys.path.insert(0, py_path)
 
-    from health_data_store import DEFAULT_DB_PATH, HealthDataStore, build_route_map
-    from health_data_store.maps import filmstrip_html, wrap_map_html
+    from healthkit_store import DEFAULT_DB_PATH, HealthkitStore, build_route_map
+    from healthkit_store.maps import filmstrip_html, wrap_map_html
 
     return (
         DEFAULT_DB_PATH,
-        HealthDataStore,
+        HealthkitStore,
         Path,
         build_route_map,
         filmstrip_html,
@@ -45,7 +45,7 @@ def _():
 
 
 @app.cell
-def _(DEFAULT_DB_PATH, HealthDataStore, Path, mo):
+def _(DEFAULT_DB_PATH, HealthkitStore, Path, mo):
     path = Path(DEFAULT_DB_PATH).expanduser()
     store = None
     journeys_df = None
@@ -55,7 +55,7 @@ def _(DEFAULT_DB_PATH, HealthDataStore, Path, mo):
         err = f"Missing `{path}`. Run `just build-db` first."
     else:
         try:
-            store = HealthDataStore(path, read_only=True)
+            store = HealthkitStore(path, read_only=True)
             store.connect()
             journeys_df = store.list_journeys()
         except Exception as e:  # noqa: BLE001

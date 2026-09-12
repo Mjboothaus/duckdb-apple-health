@@ -13,7 +13,7 @@
 | `apple_health_workout_routes` | `healthkit_workout_routes` |
 | `apple_health_workout_route_points` | `healthkit_workout_route_points` |
 
-Scanner behaviour and column schemas are unchanged. Local optional DB path remains `output/apple_health.duckdb`.
+Scanner behaviour and column schemas are unchanged. Local optional DB path remains `output/healthkit_store.duckdb`.
 
 Trademark: not affiliated with Apple Inc.
 
@@ -90,7 +90,7 @@ Community install landed in **v0.1.1** — see above and [CREATE_COMM_EXT.md](CR
 
 ### Not this release (add-ons)
 
-Optional same-repo Python package **`health-data-store`**, maps, Photos, journeys, marimo walk-stories — **not** part of the extension binary. See [PYTHON_PACKAGE.md](PYTHON_PACKAGE.md), [PERSONA.md](PERSONA.md).
+Optional same-repo Python package **`healthkit-store`**, maps, Photos, journeys, marimo walk-stories — **not** part of the extension binary. See [PYTHON_PACKAGE.md](PYTHON_PACKAGE.md), [PERSONA.md](PERSONA.md).
 
 ### Upgrade from v0.1.0-beta
 

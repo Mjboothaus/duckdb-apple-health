@@ -46,7 +46,7 @@ def _(Path, mo):
     if _python not in sys.path:
         sys.path.insert(0, _python)
 
-    from health_data_store import connect_with_healthkit_export
+    from healthkit_store import connect_with_healthkit_export
 
     default_export = str(repo_root / "test" / "data" / "export.zip")
     # Example real export (outside git):

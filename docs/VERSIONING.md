@@ -7,7 +7,7 @@ This repo ships **two related artefacts** with coordinated SemVer:
 | Artefact | Where the version lives | What consumers see |
 |----------|-------------------------|-------------------|
 | **C extension** (`healthkit_export.duckdb_extension`) | Git **tag** at build time → `configure/extension_version.txt` → extension metadata | DuckDB `LOAD` metadata / `extension_version` field |
-| **Python supplementary package** (optional Layer B/C: `python/health_data_store`, notebooks) | `pyproject.toml` `[project].version` and root **`VERSION`** file | `uv` / future pip metadata; docs. **Not** required to use the extension. v0.1 does **not** require PyPI. |
+| **Python supplementary package** (optional Layer B/C: `python/healthkit_store`, notebooks) | `pyproject.toml` `[project].version` and root **`VERSION`** file | `uv` / future pip metadata; docs. **Not** required to use the extension. v0.1 does **not** require PyPI. |
 
 ## Source of truth
 
@@ -58,18 +58,18 @@ Do **not** hand-edit `configure/extension_version.txt` for releases — it is ge
 `pyproject.toml` currently has `package = true` (app/tooling, not published to PyPI yet). Version still matters for:
 
 - Reproducible `uv lock` / environment identity
-- Future optional publish of `health_data_store` helpers
+- Future optional publish of `healthkit_store` helpers
 - Aligning docs with “add-ons v0.1.0”
 
 Until publish:
 
 ```toml
 [project]
-name = "health-data-store"
+name = "healthkit-store"
 version = "0.1.0"   # must match VERSION
 ```
 
-When publishing later, prefer a clear name (e.g. `health-data-store`) and the same SemVer as the extension **major.minor** where practical; patch may diverge if only Python changes.
+When publishing later, prefer a clear name (e.g. `healthkit-store`) and the same SemVer as the extension **major.minor** where practical; patch may diverge if only Python changes.
 
 ## Layer alignment (see RELEASE_PLAN.md)
 

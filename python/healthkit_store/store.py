@@ -10,9 +10,9 @@ from typing import Iterable, Sequence
 import duckdb
 import pandas as pd
 
-# python/health_data_store/ -> repo root
+# python/healthkit_store/ -> repo root
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DB_PATH = _REPO_ROOT / "output" / "apple_health.duckdb"
+DEFAULT_DB_PATH = _REPO_ROOT / "output" / "healthkit_store.duckdb"
 _EXT_CANDIDATES = [
     _REPO_ROOT / "build/debug/extension/healthkit_export/healthkit_export.duckdb_extension",
     _REPO_ROOT / "build/debug/healthkit_export.duckdb_extension",
@@ -162,15 +162,15 @@ class BuildResult:
     source_path: str
 
 
-class HealthDataStore:
-    """Read/query (and optionally rebuild) ``output/apple_health.duckdb``."""
+class HealthkitStore:
+    """Read/query (and optionally rebuild) ``output/healthkit_store.duckdb``."""
 
     def __init__(self, db_path: Path | str | None = None, *, read_only: bool = True):
         self.db_path = Path(db_path or DEFAULT_DB_PATH).expanduser().resolve()
         self.read_only = read_only
         self._con: duckdb.DuckDBPyConnection | None = None
 
-    def __enter__(self) -> "HealthDataStore":
+    def __enter__(self) -> "HealthkitStore":
         self.connect()
         return self
 

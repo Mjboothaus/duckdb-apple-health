@@ -1,4 +1,4 @@
-"""Walk stories — map + photos UI (helpers live under python/health_data_store/).
+"""Walk stories — map + photos UI (helpers live under python/healthkit_store/).
 
 ``build-db`` loads ``healthkit_export`` from **community** when possible (DuckDB 1.5.5+,
 macOS), otherwise a local unsigned extension build.
@@ -28,10 +28,10 @@ def _():
     if _python not in sys.path:
         sys.path.insert(0, _python)
 
-    from health_data_store import DEFAULT_DB_PATH, HealthDataStore, build_route_map
-    from health_data_store.maps import filmstrip_html
+    from healthkit_store import DEFAULT_DB_PATH, HealthkitStore, build_route_map
+    from healthkit_store.maps import filmstrip_html
 
-    return DEFAULT_DB_PATH, HealthDataStore, Path, build_route_map, filmstrip_html, mo
+    return DEFAULT_DB_PATH, HealthkitStore, Path, build_route_map, filmstrip_html, mo
 
 
 @app.cell
@@ -86,7 +86,7 @@ def _(DEFAULT_DB_PATH, mo):
 
 
 @app.cell
-def _(HealthDataStore, Path, db_path, mo):
+def _(HealthkitStore, Path, db_path, mo):
     path = Path(db_path.value).expanduser()
     store = None
     status_line = ""
@@ -103,7 +103,7 @@ def _(HealthDataStore, Path, db_path, mo):
         )
     else:
         try:
-            store = HealthDataStore(path)
+            store = HealthkitStore(path)
             store.connect()
             summary = store.summary()
             counts = {r.t: int(r.n) for r in summary.itertuples()}
@@ -284,7 +284,7 @@ def _(mo):
         just photos-for-walks -- --limit-walks 40
         just map-walks
         ```
-        Helpers: `python/health_data_store/` · model: `docs/ERD.md`
+        Helpers: `python/healthkit_store/` · model: `docs/ERD.md`
         """
     )
     return

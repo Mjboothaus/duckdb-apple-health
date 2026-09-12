@@ -9,7 +9,7 @@ Persona and onboarding ladder: [PERSONA.md](PERSONA.md).
 Get to a **reviewable first release** with three clear layers:
 
 1. **Layer A — Core** — DuckDB C extension (scanner): correct, testable, documentable  
-2. **Layer B — Local enriched DB** — `output/apple_health.duckdb` + Python store (build once, query often)  
+2. **Layer B — Local enriched DB** — `output/healthkit_store.duckdb` + Python store (build once, query often)  
 3. **Layer C — Add-ons** — maps, places, photos, multi-section journeys, marimo apps (optional product surface)
 
 **Release rule:** A must ship **without** B/C. B must work with CLI/SQL only. C is “batteries included” for the persona’s storytelling path.
@@ -27,7 +27,7 @@ Get to a **reviewable first release** with three clear layers:
 │  LAYER B — Local enriched database (Python + DuckDB file)   │
 │  gps.* · route_points_map · ingest_manifest                 │
 │  route_places · walk_photos · journeys / journey_sections   │
-│  HealthDataStore · scripts/* · just recipes                 │
+│  HealthkitStore · scripts/* · just recipes                 │
 └───────────────────────────┬─────────────────────────────────┘
                             │ optional UI
 ┌───────────────────────────▼─────────────────────────────────┐
@@ -39,14 +39,14 @@ Get to a **reviewable first release** with three clear layers:
 
 ## Current state (snapshot)
 
-Last refreshed: 2026-09-06. Repo: **https://github.com/Mjboothaus/duckdb-apple-health** (no DataBooth branding in tree).
+Last refreshed: 2026-09-06. Repo: **https://github.com/Mjboothaus/duckdb-healthkit-export** (no DataBooth branding in tree).
 
 ### On `main` (merged)
 
 - Extension TFs: records, workouts (+ stats/events), activity summaries, clinical, routes, route points; zip DEFLATE  
 - Local DB bootstrap (`just build-db`), ERD, docs (`PERSONA`, `RELEASE_PLAN`, `VERSIONING`, …)  
 - Photos / journeys / maps / walk-stories path (PRs **#21**, **#22**); DuckDB 2.0-alpha experiment (**#20**, non-blocking); rebrand + versioning (**#24**)  
-- `HealthDataStore`, map helpers, `route_places`, free tiles  
+- `HealthkitStore`, map helpers, `route_places`, free tiles  
 
 ### Open PRs
 
@@ -77,12 +77,12 @@ Prefer **core first**, then add-ons maturity, so extension-only users are not bl
 
 ## Distribution strategy (extension vs Python)
 
-**One repo** for v0.1: C extension + `health-data-store` add-ons ([PYTHON_PACKAGE.md](PYTHON_PACKAGE.md)).
+**One repo** for v0.1: C extension + `healthkit-store` add-ons ([PYTHON_PACKAGE.md](PYTHON_PACKAGE.md)).
 
 | Artefact | Publish path | v0.1 |
 |----------|--------------|------|
 | Extension | Community `INSTALL healthkit_export FROM community` when C-API CI allows; until then unsigned `LOAD` / optional GH Release binaries | Core freeze + tag; community PR **after** gates |
-| Python | Editable `uv sync`; optional later PyPI `health-data-store[maps,…]` | Package structure yes; PyPI **not** required |
+| Python | Editable `uv sync`; optional later PyPI `healthkit-store[maps,…]` | Package structure yes; PyPI **not** required |
 | Marimo maps/stories | In-repo notebooks only | **Experimental** — not a release blocker |
 
 Do **not** split the Python package to another GitHub repo until the extension is published (or blocked) and add-ons have standalone demand.
@@ -97,12 +97,12 @@ Community install migration (descriptor, gates, monorepo vs split): [CREATE_COMM
 
 | | |
 |--|--|
-| **Role** | Layer B/C only: fixtures, pytest, `HealthDataStore`, `build-db`, maps, Photos, journeys, marimo |
+| **Role** | Layer B/C only: fixtures, pytest, `HealthkitStore`, `build-db`, maps, Photos, journeys, marimo |
 | **Not** | Required to `LOAD` the extension or run SQL table functions |
-| **Layout today** | `python/health_data_store/` + root `pyproject.toml` with **`package = true`** (uv application / monorepo style) |
+| **Layout today** | `python/healthkit_store/` + root `pyproject.toml` with **`package = true`** (uv application / monorepo style) |
 | **Version** | Same root **`VERSION`** / `just version-sync` as the extension line of sight ([VERSIONING.md](VERSIONING.md)) |
 | **v0.1.0** | Document the tree; keep `uv sync` working; **do not** require publish |
-| **Later** | Flip to an installable package (`health-data-store` or aligned with repo), optional extras (`maps`, `photos`, `notebooks`), then consider PyPI |
+| **Later** | Flip to an installable package (`healthkit-store` or aligned with repo), optional extras (`maps`, `photos`, `notebooks`), then consider PyPI |
 
 Do **not** put Python inside the C extension binary. Do **not** block the core release on packaging polish.
 
@@ -191,7 +191,7 @@ just journey-list
 
 ### 2.3 Hardening
 
-- [ ] `HealthDataStore` API listed in docs  
+- [ ] `HealthkitStore` API listed in docs  
 - [ ] Fix/document DuckDB attach lock (photos ATTACH vs open store)  
 - [ ] Cocoa date offset for Photos.sqlite documented  
 - [ ] Privacy: `output/` gitignored; example YAML only in `docs/`  

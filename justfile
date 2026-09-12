@@ -1,4 +1,4 @@
-# mjboothaus/duckdb-apple-health
+# mjboothaus/duckdb-healthkit-export
 # Portable workflows (bash). Makefile remains the source of truth for CMake /
 # extension metadata; this file is the developer front door.
 #
@@ -9,7 +9,7 @@
 #   just demo         # unsigned LOAD + fixture scan (set DUCKDB=… for alpha CLI)
 #   just duckdb-alpha # interactive shell with alpha CLI if installed
 #   just build-db export_zip=/path/to/export.zip
-#   just map-walks    # map from output/apple_health.duckdb
+#   just map-walks    # map from output/healthkit_store.duckdb
 #   just geocode-places          # fill route_places (Nominatim)
 #   just geocode-places limit=50
 #
@@ -150,36 +150,36 @@ demo-routes: fixture ensure-ext
 
 # ── Local workout / GPS database ────────────────────────────────────────────
 
-# Build output/apple_health.duckdb from a real export (Walking+Hiking by default).
+# Build output/healthkit_store.duckdb from a real export (Walking+Hiking by default).
 build-db export_zip activities="Walking,Hiking": ensure-ext
     uv run python scripts/build_health_db.py {{export_zip}} --activities {{activities}}
 
 # List walks/hikes from the local DB (build-db first). Includes places when geocoded.
 list-walks limit="30":
-    @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
-    @{{duckdb}} output/apple_health.duckdb -c "SELECT r.activity_type_short AS activity, r.workout_start_date AS start, round(date_diff('second', r.workout_start_date, r.workout_end_date)/60.0, 1) AS mins, pl.start_place, pl.end_place, r.gpx_path FROM routes r LEFT JOIN route_places pl USING (gpx_path) ORDER BY r.workout_start_date DESC NULLS LAST LIMIT {{limit}};" 2>/dev/null \
-      || {{duckdb}} output/apple_health.duckdb -c "SELECT activity_type_short AS activity, workout_start_date AS start, round(date_diff('second', workout_start_date, workout_end_date)/60.0, 1) AS mins, gpx_path FROM routes ORDER BY workout_start_date DESC NULLS LAST LIMIT {{limit}};"
+    @test -f output/healthkit_store.duckdb || { echo "Missing output/healthkit_store.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
+    @{{duckdb}} output/healthkit_store.duckdb -c "SELECT r.activity_type_short AS activity, r.workout_start_date AS start, round(date_diff('second', r.workout_start_date, r.workout_end_date)/60.0, 1) AS mins, pl.start_place, pl.end_place, r.gpx_path FROM routes r LEFT JOIN route_places pl USING (gpx_path) ORDER BY r.workout_start_date DESC NULLS LAST LIMIT {{limit}};" 2>/dev/null \
+      || {{duckdb}} output/healthkit_store.duckdb -c "SELECT activity_type_short AS activity, workout_start_date AS start, round(date_diff('second', workout_start_date, workout_end_date)/60.0, 1) AS mins, gpx_path FROM routes ORDER BY workout_start_date DESC NULLS LAST LIMIT {{limit}};"
 
 # Reverse-geocode route start/end into gps.route_places (Nominatim + cache).
 # Examples: just geocode-places   |   just geocode-places -- --limit 50   |   just geocode-places -- --all
 geocode-places *args:
-    @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
+    @test -f output/healthkit_store.duckdb || { echo "Missing output/healthkit_store.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
     uv run --project . python scripts/geocode_route_places.py {{args}}
 
 
 # Match Apple Photos to walks (Photos.sqlite via DuckDB) → walk_photos + thumbs.
 # Examples: just photos-for-walks   |   just photos-for-walks -- --limit-walks 20
 photos-for-walks *args:
-    @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
+    @test -f output/healthkit_store.duckdb || { echo "Missing output/healthkit_store.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
     uv run --project . python scripts/match_walk_photos.py {{args}}
 
 # Multi-section journeys (YAML → meta.journeys / journey_sections)
 journey-list:
-    @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
+    @test -f output/healthkit_store.duckdb || { echo "Missing DB"; exit 1; }
     uv run --project . python scripts/manage_journeys.py list
 
 journey-import manifest:
-    @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
+    @test -f output/healthkit_store.duckdb || { echo "Missing DB"; exit 1; }
     uv run --project . python scripts/manage_journeys.py import {{manifest}}
 
 journey-sections journey_id:
@@ -189,13 +189,13 @@ journey-sections journey_id:
 
 # App view (default) — reliable Folium iframe + no sandbox.
 walk-stories:
-    @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
+    @test -f output/healthkit_store.duckdb || { echo "Missing DB"; exit 1; }
     @echo "Opening Walk stories in APP view (marimo run)…"
     uv run --project . --extra notebooks --extra maps marimo run --no-token --no-sandbox notebooks/walk_stories.py
 
 # Dev / notebook edit mode
 walk-stories-edit:
-    @test -f output/apple_health.duckdb || { echo "Missing DB"; exit 1; }
+    @test -f output/healthkit_store.duckdb || { echo "Missing DB"; exit 1; }
     uv run --project . --extra notebooks --extra maps marimo edit --no-token --no-sandbox notebooks/walk_stories.py
 
 # Explore export notebook (fixture or real zip path set in notebook)
@@ -204,7 +204,7 @@ explore:
 
 # Map walks/hikes from local DB (needs maps + notebooks extras)
 map-walks:
-    @test -f output/apple_health.duckdb || { echo "Missing output/apple_health.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
+    @test -f output/healthkit_store.duckdb || { echo "Missing output/healthkit_store.duckdb — run: just build-db export_zip=/path/to/export.zip"; exit 1; }
     uv run --project . --extra notebooks --extra maps marimo edit --no-token --no-sandbox notebooks/map_walks.py
 
 # Developer: install package + all extras into .venv

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for interest in `duckdb-apple-health`. This is a **v0.1.0-beta** C extension; small, focused changes are preferred.
+Thanks for interest in `duckdb-healthkit-export`. This is a **v0.1.0-beta** C extension; small, focused changes are preferred.
 
 ## Before you start
 
@@ -11,8 +11,8 @@ Thanks for interest in `duckdb-apple-health`. This is a **v0.1.0-beta** C extens
 ## Dev setup (macOS)
 
 ```bash
-git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
-cd duckdb-apple-health
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-healthkit-export.git
+cd duckdb-healthkit-export
 brew install cmake ninja ccache just
 just configure
 just debug

@@ -13,15 +13,15 @@
 - Community listing will move to `extensions/healthkit_export/` (replace short-lived `apple_health` publish).
 
 ### Notes
-- Repo remains `Mjboothaus/duckdb-apple-health`; optional local DB path remains `output/apple_health.duckdb`.
-- Python package remains `health-data-store`.
+- Repo remains `Mjboothaus/duckdb-healthkit-export`; optional local DB path remains `output/healthkit_store.duckdb`.
+- Python package remains `healthkit-store`.
 
 ## [0.1.1] — 2026-09-10
 
 ### Added
 - DuckDB **community extension** on **macOS** (`INSTALL healthkit_export FROM community`).
 - Listing: [duckdb/community-extensions#2653](https://github.com/duckdb/community-extensions/pull/2653) (merged).
-- `health_data_store.connect_with_healthkit_export` / `load_healthkit_export` (community first, local unsigned fallback).
+- `healthkit_store.connect_with_healthkit_export` / `load_healthkit_export` (community first, local unsigned fallback).
 - Docs + `explore_export` notebook updated for community install.
 
 ### Fixed
@@ -36,7 +36,7 @@
 - Core extension release tag path: `VERSION` = `0.1.0`, git tag `v0.1.0` for extension metadata.
 - `just pytest-ext` / `pytest-ext-real` recipes for extension pytest.
 - Docs: [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md) (community INSTALL migration).
-- Companion package name **health-data-store** (optional; not required for extension use).
+- Companion package name **healthkit-store** (optional; not required for extension use).
 
 ### Extension (Layer A)
 - Table functions: `read_healthkit_export`, `healthkit_workouts`, `healthkit_activity_summaries`,
@@ -90,8 +90,8 @@ First public **developer beta**.
 
 Full notes: [RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
 
-[Unreleased]: https://github.com/Mjboothaus/duckdb-apple-health/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/Mjboothaus/duckdb-apple-health/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/Mjboothaus/duckdb-apple-health/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/Mjboothaus/duckdb-apple-health/compare/v0.1.0-beta...v0.1.0
-[0.1.0-beta]: https://github.com/Mjboothaus/duckdb-apple-health/releases/tag/v0.1.0-beta
+[Unreleased]: https://github.com/Mjboothaus/duckdb-healthkit-export/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Mjboothaus/duckdb-healthkit-export/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/Mjboothaus/duckdb-healthkit-export/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/Mjboothaus/duckdb-healthkit-export/compare/v0.1.0-beta...v0.1.0
+[0.1.0-beta]: https://github.com/Mjboothaus/duckdb-healthkit-export/releases/tag/v0.1.0-beta
