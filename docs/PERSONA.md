@@ -1,6 +1,6 @@
 # Persona and onboarding path
 
-Last updated: 2026-09-05.
+Last updated: 2026-09-12.
 
 ## Product frame
 
@@ -20,7 +20,7 @@ One-line positioning:
 | **Can** | Use Terminal, install Homebrew tools, run `just`/`uv`, write or paste SQL in the DuckDB CLI |
 | **Wants** | Query HR/steps/workouts/GPS themselves; keep data private; eventually nice maps of multi-day walks |
 | **Does not need** | App Store polish, live HealthKit sync, or a hosted dashboard |
-| **Tolerates** | Unsigned extension load, multi-minute first scan of a large zip, reading docs |
+| **Tolerates** | Multi-minute first scan of a large zip, reading docs; optional local unsigned builds for development |
 
 ### Secondary personas (supported, not primary)
 
@@ -33,7 +33,7 @@ One-line positioning:
 1. **Unlock** — Health zip becomes typed tables in DuckDB.
 2. **Own** — processing is local; no telemetry in the extension; real exports stay out of git.
 3. **Deepen (optional)** — one local DB file, places, photos, multi-day journeys, marimo walk stories.
-4. **Honest limits** — first full scan can be slow/RAM-heavy; community `INSTALL` not yet; macOS-first.
+4. **Honest limits** — first full scan can be slow/RAM-heavy; community install is **macOS-first** (DuckDB 1.5.5+).
 
 ## Capability ladder (onboarding path)
 
@@ -42,39 +42,30 @@ Each rung is optional after the previous; **stopping early is success**.
 ### Rung 0 — Orient (~10 min)
 
 - Read README positioning + privacy blurb.
-- Confirm Mac + Xcode CLT + DuckDB CLI + `just`/`uv` ([QUICKSTART.md](QUICKSTART.md) requirements).
-- **Done when:** they understand “scanner extension, unsigned `LOAD`, no real zip in repo.”
+- Confirm Mac + DuckDB CLI **1.5.5+** ([QUICKSTART.md](QUICKSTART.md)).
+- **Done when:** they understand “community `INSTALL`, local SQL, no real zip in git.”
 
-### Rung 1 — Core unlock: SQL on a fixture (~20–40 min)
-
-```bash
-git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
-cd duckdb-apple-health
-just bootstrap          # or: just configure && just debug
-just demo
-just demo-workouts
-```
+### Rung 1 — Core unlock: SQL on a fixture (~5–15 min)
 
 ```sql
-LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
-FROM read_apple_health('test/data/export.zip');
+INSTALL apple_health FROM community;
+LOAD apple_health;
+FROM read_apple_health('test/data/export.zip');  -- clone repo for fixture, or use your zip
 FROM apple_health_workouts('test/data/export.zip');
 ```
 
-- **Done when:** fixture queries return rows; they trust the build.
+Developers who prefer building from source: `just bootstrap` then unsigned `LOAD` (see [QUICKSTART.md](QUICKSTART.md)).
+
+- **Done when:** fixture (or small zip) queries return rows.
 - **Layer:** A (core extension) only.
 
 ### Rung 2 — Core unlock: their export (30–90+ min, size-dependent)
 
-```bash
-# Keep export.zip outside the repo
-duckdb -unsigned
-```
-
 ```sql
-LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
+INSTALL apple_health FROM community;
+LOAD apple_health;
 SELECT type_short, count(*) AS n
-FROM read_apple_health('/path/to/export.zip')
+FROM read_apple_health('/path/to/export.zip')  -- keep zip outside the repo
 GROUP BY 1
 ORDER BY n DESC
 LIMIT 20;
@@ -159,7 +150,7 @@ just map-walks
 - Windows-first or iPhone-only workflow
 - Live HealthKit / background sync
 - Automatic cloud backup of the DuckDB file
-- Guaranteed community extension install before the DuckDB 2.0 ecosystem is ready
+- Non-macOS community binaries before multi-arch CI is green
 
 ## Related
 

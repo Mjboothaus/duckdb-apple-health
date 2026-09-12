@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.1] — 2026-09-10
+
+### Added
+- DuckDB **community extension** on **macOS** (`INSTALL apple_health FROM community`).
+- Listing: [duckdb/community-extensions#2653](https://github.com/duckdb/community-extensions/pull/2653) (merged).
+- `health_data_store.connect_with_apple_health` / `load_apple_health` (community first, local unsigned fallback).
+- Docs + `explore_export` notebook updated for community install.
+
+### Fixed
+- C extension ABI stamp: `TARGET_DUCKDB_VERSION=v1.2.0` (was incorrectly v1.5.6, which community hosts reject).
+
+### Platforms
+- Community CDN: `osx_arm64`, `osx_amd64` for DuckDB **v1.5.5**.
+
 ## [0.1.0] — 2026-09-06
 
 ### Added
@@ -19,7 +33,7 @@
 
 ### Not included in core binary
 - Python maps/Photos/journeys/marimo (same repo, optional).
-- Community `INSTALL`, streaming execute, named scan filters.
+- Streaming execute, named scan filters (community install arrived in **0.1.1**).
 
 All notable changes to this project are documented here.
 Format inspired by [Keep a Changelog](https://keepachangelog.com/).
@@ -27,27 +41,12 @@ Versioning: early **0.x** beta tags; breaking changes allowed until 1.0.
 
 ## [Unreleased]
 
-### Changed
-- Target DuckDB **2.0-alpha** C API headers (`v2.0-cyanoptera`) with extension metadata `v1.5.6`; `just debug-alpha` / alpha CLI support.
-
-### Added
-
-- `apple_health_workout_routes(path)` — WorkoutRoute + FileReference `gpx_path` with parent workout type/dates for joins
-
-### Fixed
-
-- Zip DEFLATE inflate no longer stops early on `Z_BUF_ERROR` when the output buffer fills; require `Z_STREAM_END` and honour central-directory sizes for data-descriptor members. Real `export.zip` record counts now match bare `export.xml` (closes the HRV SDNN −2 gap).
-
-### Changed
-
-- justfile: `bootstrap`, auto-build debug before demos/`pytest-ext`, `demo-real export_zip=…`, clearer comments (Makefile still owns CMake/metadata).
-
 ### Planned
 
-- `apple_health_workout_route_points` GPX trkpt stream (see docs/ROADMAP)
 - Streaming table-function execute (bounded memory)
 - Named `types` / `start` / `end` parameters
-- DuckDB 2.0 community packaging when C-API CI is ready
+- Widen community platforms beyond macOS
+- DuckDB 2.0 packaging when ready
 
 See [ROADMAP.md](docs/ROADMAP.md).
 
@@ -75,6 +74,7 @@ First public **developer beta**.
 
 Full notes: [RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
 
-[Unreleased]: https://github.com/Mjboothaus/duckdb-apple-health/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Mjboothaus/duckdb-apple-health/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Mjboothaus/duckdb-apple-health/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Mjboothaus/duckdb-apple-health/compare/v0.1.0-beta...v0.1.0
 [0.1.0-beta]: https://github.com/Mjboothaus/duckdb-apple-health/releases/tag/v0.1.0-beta

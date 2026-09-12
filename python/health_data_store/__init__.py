@@ -11,21 +11,32 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .store import DEFAULT_DB_PATH, HealthDataStore, find_extension, repo_root
+from .store import (
+    DEFAULT_DB_PATH,
+    ExtensionLoadInfo,
+    HealthDataStore,
+    connect_with_apple_health,
+    find_extension,
+    load_apple_health,
+    repo_root,
+)
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "DEFAULT_DB_PATH",
+    "ExtensionLoadInfo",
     "HealthDataStore",
     "ReverseGeocoder",
     "build_route_map",
+    "connect_with_apple_health",
     "create_journey",
     "downsample_points",
     "filmstrip_html",
     "find_extension",
     "format_nominatim_address",
     "import_journey_manifest",
+    "load_apple_health",
     "materialise_walk_photos",
     "match_photos_to_walks",
     "repo_root",

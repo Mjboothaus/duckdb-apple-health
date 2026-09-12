@@ -1,5 +1,8 @@
 """Walk stories — map + photos UI (helpers live under python/health_data_store/).
 
+``build-db`` loads ``apple_health`` from **community** when possible (DuckDB 1.5.5+,
+macOS), otherwise a local unsigned extension build.
+
 ```bash
 just build-db export_zip=/path/to/export.zip
 just photos-for-walks -- --limit-walks 40

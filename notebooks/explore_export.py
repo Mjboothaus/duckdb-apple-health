@@ -8,7 +8,10 @@
 #     "polars",
 # ]
 # ///
-"""Explore an Apple Health export.zip via the local duckdb-apple-health extension.
+"""Explore an Apple Health export.zip via the apple_health DuckDB extension.
+
+Loads **community** ``apple_health`` when available (DuckDB 1.5.5+, macOS),
+with fallback to a local unsigned ``just debug`` / ``just release`` build.
 
 Default export path is the synthetic fixture. Point ``export_path`` at a real
 Health zip outside the repo for full exploration. Real exports stay local —
@@ -36,7 +39,15 @@ def _():
 
 @app.cell
 def _(Path, mo):
+    import sys
+
     repo_root = Path(__file__).resolve().parents[1]
+    _python = str(repo_root / "python")
+    if _python not in sys.path:
+        sys.path.insert(0, _python)
+
+    from health_data_store import connect_with_apple_health
+
     default_export = str(repo_root / "test" / "data" / "export.zip")
     # Example real export (outside git):
     # /Users/mjboothaus/icloud/Data/apple_health_export/export23June2025.zip
@@ -68,8 +79,8 @@ def _(Path, mo):
                 """
     # Apple Health × DuckDB
 
-    Interactive scan of an Apple Health export through the local **`apple_health`**
-    extension (unsigned C-API build).
+    Interactive scan of an Apple Health export through the **`apple_health`**
+    community extension (falls back to a local unsigned build if needed).
 
     For **walk / hike GPS maps**, use the separate notebook `notebooks/map_walks.py` (`just map-walks`).
 
@@ -82,37 +93,26 @@ def _(Path, mo):
             materialise,
         ]
     )
-    return export_path, materialise, repo_root, selected_types
+    return connect_with_apple_health, export_path, materialise, repo_root, selected_types
 
 
 @app.cell
-def _(Path, duckdb, export_path, mo, repo_root):
-    def resolve_extension() -> Path:
-        candidates = [
-            repo_root / "build/debug/extension/apple_health/apple_health.duckdb_extension",
-            repo_root / "build/debug/apple_health.duckdb_extension",
-            repo_root / "build/release/extension/apple_health/apple_health.duckdb_extension",
-        ]
-        for p in candidates:
-            if p.is_file():
-                return p
-        raise FileNotFoundError(
-            "No apple_health.duckdb_extension found. Run `just debug` in the repo root first."
-        )
-
-    ext_path = resolve_extension()
+def _(Path, connect_with_apple_health, export_path, mo, repo_root):
     zip_path = Path(export_path.value).expanduser()
     if not zip_path.exists():
         raise FileNotFoundError(f"Export not found: {zip_path}")
 
-    # allow_unsigned_extensions must be set before the DB starts.
-    con = duckdb.connect(config={"allow_unsigned_extensions": "true"})
-    con.execute(f"LOAD '{ext_path.as_posix()}'")
+    con, ext_info = connect_with_apple_health(prefer_community=True, allow_local=True)
 
-    try:
-        ext_display = ext_path.relative_to(repo_root)
-    except ValueError:
-        ext_display = ext_path
+    if ext_info.source == "community":
+        ext_display = "community (INSTALL apple_health FROM community)"
+    elif ext_info.path is not None:
+        try:
+            ext_display = str(ext_info.path.relative_to(repo_root))
+        except ValueError:
+            ext_display = str(ext_info.path)
+    else:
+        ext_display = ext_info.detail or ext_info.source
 
     mo.md(
         f"""
@@ -121,9 +121,10 @@ def _(Path, duckdb, export_path, mo, repo_root):
     | | |
     |---|---|
     | Extension | `{ext_display}` |
+    | Source | **{ext_info.source}** |
     | Export | `{zip_path}` |
     | Size | **{zip_path.stat().st_size / (1024**2):.1f} MiB** |
-    | DuckDB | `{con.execute("SELECT version()").fetchone()[0]}` |
+    | DuckDB | `{ext_info.duckdb_version}` |
     """
     )
     return con, zip_path
@@ -399,11 +400,11 @@ def _(
                 """
     **Notes**
 
-    - v0.1 table functions parse in **bind** and buffer rows — memory scales with export size.
+    - Table functions parse in **bind** and buffer rows — memory scales with export size.
     - Re-running cells re-scans the zip unless you query Parquet instead.
     - Named filters (`types` / `start` / `end`) are planned; filter in SQL or COPY for now.
-    - `duckdb` Python package should be able to `LOAD` the same unsigned `.duckdb_extension`
-      built for your platform (`osx_arm64` here).
+    - Prefer **DuckDB 1.5.5+** on **macOS** so `INSTALL apple_health FROM community` works;
+      otherwise build locally with `just debug` / `just release` (unsigned fallback).
     """
             ),
         ]
@@ -418,9 +419,17 @@ def _(mo):
     ### Try it
 
     ```bash
+    # Optional if community install is unavailable for your DuckDB build:
     just debug
     uv sync
     uv run marimo edit notebooks/explore_export.py
+    ```
+
+    Community path (CLI, DuckDB **1.5.5+**, macOS):
+
+    ```sql
+    INSTALL apple_health FROM community;
+    LOAD apple_health;
     ```
 
     Point the path field at a real Health export outside the repo, e.g.

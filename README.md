@@ -1,14 +1,14 @@
 # duckdb-apple-health
 
-**v0.1.0** — Apple Health exports → DuckDB SQL, in-process (core extension release).
+**v0.1.1** — Apple Health exports → DuckDB SQL, in-process.
 
-A DuckDB **scanner** extension that turns an Apple Health `export.zip` / `export.xml` into typed tables. Written in **C** on the **stable C API**. Load **unsigned** today. A **community extension** release is planned next (**macOS first**) — see [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md).
+A DuckDB **scanner** extension that turns an Apple Health `export.zip` / `export.xml` into typed tables. Written in **C** on the **stable C API**. Available as a **[community extension](https://duckdb.org/community_extensions/)** on **macOS** (DuckDB **1.5.5+**). See [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md).
 
 Data never leaves the process. This repository contains **no real Health exports**.
 
 ```sql
--- duckdb -unsigned
-LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
+INSTALL apple_health FROM community;
+LOAD apple_health;
 
 FROM read_apple_health('~/Downloads/export.zip');
 FROM apple_health_workouts('export.zip');
@@ -56,15 +56,15 @@ This project fills the gap between those: **HealthKit-aware, in-process SQL** ai
 - Stable C ABI so the binary is not rebuilt for every DuckDB patch
 - Optional **Python add-ons** (local DB, maps, Photos, journeys) — not required to unlock data in SQL
 
-## Status (v0.1.0)
+## Status (v0.1.1)
 
 | | |
 |---|---|
-| Version | **v0.1.0** |
-| Install | Local unsigned `LOAD` today; **community `INSTALL` planned soon (macOS first)** — see [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md) |
-| Platforms proven | macOS Apple Silicon (`osx_arm64`); community target starts **macOS-only** |
-| DuckDB | Tested with **1.5.x** unsigned C-API load; **2.0** is the strategic target ([ROADMAP.md](docs/ROADMAP.md)) |
-| Correctness | SQLLogic + fixture golden + pytest vs `healthkit-to-sqlite` (top-level records) — green on freeze |
+| Version | **v0.1.1** (community package); core freeze was **v0.1.0** |
+| Install | **`INSTALL apple_health FROM community`** on **macOS** (`osx_arm64` / `osx_amd64`) for DuckDB **1.5.5+** — [PR #2653](https://github.com/duckdb/community-extensions/pull/2653) merged |
+| Platforms | Community binaries: **macOS only** for now; Linux/Windows/Wasm excluded until CI widens |
+| DuckDB | Community host **1.5.5**; local unsigned builds still work for development ([ROADMAP.md](docs/ROADMAP.md) for 2.0) |
+| Correctness | SQLLogic + fixture golden + pytest vs `healthkit-to-sqlite` (top-level records) |
 | Limits | Parse currently buffers in bind (RAM ∝ export size); named `types`/`start`/`end` filters not shipped yet |
 
 See [RELEASE_NOTES.md](docs/RELEASE_NOTES.md) and [ROADMAP.md](docs/ROADMAP.md).
@@ -77,9 +77,13 @@ See [RELEASE_NOTES.md](docs/RELEASE_NOTES.md) and [ROADMAP.md](docs/ROADMAP.md).
 
 ## Requirements (Mac)
 
+**To use the community extension only:** DuckDB CLI **1.5.5+** (or matching Python `duckdb` wheel) on macOS — no local C build required.
+
+**To build from source / run tests:**
+
 - Xcode CLT (`clang`, `make`, `cmake`)
 - Python 3.12+ (`uv` recommended for tests/notebook)
-- DuckDB CLI on `PATH` (1.5+ with unsigned extensions; 2.0 when available)
+- DuckDB CLI on `PATH` (1.5.5+ preferred; unsigned load for local binaries)
 - Optional: Ninja, ccache, [just](https://github.com/casey/just)
 
 ```bash
@@ -87,20 +91,22 @@ xcode-select --install
 brew install cmake python ninja ccache just
 ```
 
-## Build (local, unsigned)
+## Install (community — preferred)
+
+```sql
+INSTALL apple_health FROM community;
+LOAD apple_health;
+FROM read_apple_health('test/data/export.zip');  -- or your export.zip
+```
+
+Requires DuckDB **1.5.5+** on **macOS**. Older CLI builds (e.g. 1.5.2) will 404 on the community CDN until you upgrade.
+
+## Build (local, unsigned — developers)
 
 ```bash
 git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
 cd duckdb-apple-health
 just bootstrap   # or: just configure && just debug
-just debug-alpha   # DuckDB 2.0-alpha headers + CLI (see docs/ROADMAP.md)
-```
-
-Extension binary (either path works after debug):
-
-```text
-build/debug/extension/apple_health/apple_health.duckdb_extension
-build/debug/apple_health.duckdb_extension
 ```
 
 ```bash
@@ -149,9 +155,9 @@ GPX `trkpt` rows: lat/lon/ele/time, optional speed/course/h_acc/v_acc, joined to
 
 Daily rings. Both `appleMoveMinutes*` (older) and `appleMoveTime*` (iOS 14+) as nullable columns.
 
-### Not in v0.1.0 core
+### Not in v0.1.x core
 
-ECG as a first-class table, Correlation as a table, Wasm, community `INSTALL`, Watch/iPhone dedupe, named `types`/`start`/`end` pushdown, streaming execute.
+ECG as a first-class table, Correlation as a table, Wasm, non-macOS community binaries, Watch/iPhone dedupe, named `types`/`start`/`end` pushdown, streaming execute.
 
 **Semantics:** top-level `<Record>` only — nested Correlation children are skipped (see [DESIGN.md](docs/DESIGN.md) and tests).
 
@@ -172,7 +178,7 @@ just pytest-ext-real export_zip=/path/to/export.zip
 
 ## Optional add-ons (not the extension)
 
-**You do not need this section to use the C extension.** SQL + unsigned `LOAD` is enough.
+**You do not need this section to use the C extension.** Community `INSTALL` / `LOAD` is enough for SQL.
 
 Same repo, separate tooling: Python helpers that build a **local DuckDB file** from your export, then optional maps, multi-day journeys, and Photos matching. Package: **`health-data-store`** ([PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md)). Suggested path for going further: [PERSONA.md](docs/PERSONA.md).
 

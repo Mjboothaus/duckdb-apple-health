@@ -1,6 +1,6 @@
 # Quick start
 
-**v0.1.0** — local unsigned build of the Apple Health scanner.
+**v0.1.1** — community install on macOS, or local unsigned build for developers.
 
 ## 1. Export from the Health app
 
@@ -12,9 +12,20 @@ On iPhone:
 
 Multi-GB zips are normal. **Do not commit a real export to git.**
 
-## 2. Build the extension
+## 2. Install (community — preferred)
 
-Needs Xcode CLT, CMake, Python 3, and a DuckDB CLI that can load unsigned extensions (1.5+ works in testing; 2.0 is the target).
+Needs DuckDB CLI **1.5.5+** on **macOS** (`osx_arm64` or `osx_amd64`).
+
+```sql
+INSTALL apple_health FROM community;
+LOAD apple_health;
+```
+
+If install 404s, your DuckDB build is older than the published community artifacts — upgrade the CLI (Homebrew/`duckdb` releases) or use the local build path below.
+
+## 3. Build locally (optional / developers)
+
+Needs Xcode CLT, CMake, Python 3, and a DuckDB CLI that can load unsigned extensions.
 
 ```bash
 git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
@@ -24,8 +35,6 @@ just check-tools
 just bootstrap   # configure (if needed) + debug + fixture
 # or: just configure && just debug
 ```
-
-## 3. Load unsigned
 
 ```bash
 duckdb -unsigned
@@ -42,8 +51,6 @@ If `LOAD` cannot find the file:
 ```bash
 find build -name '*.duckdb_extension'
 ```
-
-`justfile` variables `ext_debug` / `ext_release` should match these paths.
 
 ## 4. Query
 
@@ -125,16 +132,17 @@ uv run marimo edit notebooks/map_walks.py   # walks / hikes GPS map
 
 The extension only reads a path you pass in. No network, no telemetry. Keep real exports off GitHub and out of CI logs.
 
-## Not in this beta
+## Not in this release
 
-Community `INSTALL`, Wasm, ECG, clinical records, bind-time progress bar, named scan filters.
+Non-macOS community binaries, Wasm, ECG, clinical records, bind-time progress bar, named scan filters.
 
 ## If something fails
 
 | Symptom | Check |
 |---|---|
-| `LOAD` refuses the file | `duckdb -unsigned`; find the `.duckdb_extension` under `build/` |
-| File not found | `find build -name '*.duckdb_extension'` |
+| Community `INSTALL` HTTP 404 | Upgrade to DuckDB **1.5.5+**; binaries are macOS-only today |
+| `LOAD` refuses a local file | `duckdb -unsigned`; find the `.duckdb_extension` under `build/` |
+| File not found (local build) | `find build -name '*.duckdb_extension'` |
 | Slow / large RAM on big zip | Filter in SQL and `COPY` to Parquet; see [ROADMAP.md](ROADMAP.md) |
 | Dates look shifted | Offsets like `+1100` must be honoured (they are in v0.1) |
 | Tests fail | `just debug` then `just pytest-ext` |
