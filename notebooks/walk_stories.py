@@ -1,5 +1,8 @@
 """Walk stories — multi-day journeys + maps + photos.
 
+Requires a local DB from ``just build-db`` (uses community ``apple_health`` when
+available, else a local unsigned build).
+
 ```bash
 just walk-stories          # marimo run (app view)
 just walk-stories-edit     # marimo edit

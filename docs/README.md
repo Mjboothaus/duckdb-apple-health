@@ -10,7 +10,7 @@
 | [PERSONA.md](PERSONA.md) | Who it’s for + onboarding ladder (Rungs 0–5) |
 | [RELEASE_PLAN.md](RELEASE_PLAN.md) | Initial release: core / local DB / add-ons |
 | [VERSIONING.md](VERSIONING.md) | Extension + Python SemVer and release tags |
-| [CREATE_COMM_EXT.md](CREATE_COMM_EXT.md) | Path from this repo → community `INSTALL` |
+| [CREATE_COMM_EXT.md](CREATE_COMM_EXT.md) | Community extension status + how listing works |
 | [PYTHON_PACKAGE.md](PYTHON_PACKAGE.md) | Companion `health-data-store` package + extras |
 | [LINKEDIN_ANNOUNCEMENT.md](LINKEDIN_ANNOUNCEMENT.md) | Public announcement draft |
 

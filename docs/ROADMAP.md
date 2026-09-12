@@ -41,23 +41,24 @@ Raw XML scan is intentionally the **slow path**; Parquet / local DuckDB is the *
 - Python: local DuckDB builder, maps (selected journeys), Photos helpers, marimo apps
 - Docs: architecture, privacy, persona, release plan, versioning; repo under **Mjboothaus**
 
-## Near-term (toward v0.1.0)
+## Shipped (v0.1.0 / v0.1.1)
+
+- [x] Phase 1 core freeze — tag **v0.1.0**
+- [x] Community extension on **macOS** — tag **v0.1.1**, [PR #2653](https://github.com/duckdb/community-extensions/pull/2653)
+- [x] Python tree as optional supplementary package (`health-data-store`)
+
+## Near-term
 
 - [ ] **Marimo** `map_walks` / `walk_stories`: smoke-test or mark experimental in docs (library Folium path is source of truth)
+- [ ] Widen community platforms (Linux/Windows) when CI + demand justify it
+- [ ] Keep Python package optional; no PyPI required yet
 
-
-- [ ] Phase 0 wrap: walk-stories polish on main; docs complete (this cycle)
-- [ ] Phase 1: core freeze — `just bootstrap`, `pytest-ext`, README/USAGE contract, tag **v0.1.0**
-- [ ] Decide community extension submission timing (may be v0.1 or shortly after)
-- [ ] Python tree: keep as **optional supplementary package** (`python/health_data_store`); same VERSION line of sight; no PyPI required for v0.1
-
-## After v0.1
+## After v0.1.x
 
 - Streaming + filter pushdown (performance list above)
 - Workout route ↔ workout join helpers (SQL examples / optional view)
 - Clinical / ECG depth only if fixture + tests exist
-- Community extension packaging + multi-arch CI
-- Optional: publish supplementary Python package (name TBD, e.g. aligned with repo)
+- Optional: publish supplementary Python package
 
 ## Explicit non-goals (for now)
 

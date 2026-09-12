@@ -1,27 +1,31 @@
-# Creating a DuckDB community extension from this repo
+# DuckDB community extension
 
-Last updated: 2026-09-06.
+Last updated: 2026-09-12.
 
-This note explains how **duckdb-apple-health** (Layer A — the C scanner) can move from
-**local unsigned `LOAD`** to:
+**duckdb-apple-health** (Layer A — the C scanner) is published as a DuckDB
+**community extension** on **macOS**:
 
 ```sql
 INSTALL apple_health FROM community;
 LOAD apple_health;
 ```
 
-It is **not** a commitment that community install ships on day one of v0.1.0. The intent is to
-submit **soon after** the core freeze, starting with **macOS** (`osx_arm64` / Apple Silicon),
-then widen platforms as CI allows. This doc is the migration path once gates are green.
+- Listing PR (merged): https://github.com/duckdb/community-extensions/pull/2653
+- Package version: **0.1.1** (source tag **v0.1.1** / C API stamp **v1.2.0**)
+- Platforms: **`osx_arm64`**, **`osx_amd64`** for DuckDB **v1.5.5** community CDN
+- Linux / Windows / Wasm: still excluded until multi-platform CI is widened
 
-Related: [DESIGN.md](DESIGN.md) · [RELEASE_PLAN.md](RELEASE_PLAN.md) Phase 1 · [VERSIONING.md](VERSIONING.md) · [ROADMAP.md](ROADMAP.md).
+Related: [DESIGN.md](DESIGN.md) · [RELEASE_PLAN.md](RELEASE_PLAN.md) · [VERSIONING.md](VERSIONING.md) · [ROADMAP.md](ROADMAP.md).
 
 ---
 
 ## Status
 
-Community PR opened: https://github.com/duckdb/community-extensions/pull/2653  
-(**macOS first**, source tag **v0.1.0**). CI on that PR is the source of truth for whether builds succeed.
+| | |
+|--|--|
+| Community PR | [#2653](https://github.com/duckdb/community-extensions/pull/2653) **merged** (2026-09-10) |
+| CDN (example) | `https://community-extensions.duckdb.org/v1.5.5/osx_arm64/apple_health.duckdb_extension.gz` |
+| Verified | `INSTALL` / `LOAD` + fixture queries on DuckDB **1.5.5** (macOS arm64) |
 
 ## What “community extension” means
 
@@ -161,9 +165,9 @@ but that is optional. Until then, ensure extension CI paths ignore heavy Python 
 
 ---
 
-## Interim distribution (before community)
+## Local / interim distribution (developers)
 
-### A. Unsigned local (default today)
+### A. Unsigned local build
 
 ```bash
 just bootstrap

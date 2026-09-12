@@ -17,6 +17,7 @@ _EXT_CANDIDATES = [
     _REPO_ROOT / "build/debug/extension/apple_health/apple_health.duckdb_extension",
     _REPO_ROOT / "build/debug/apple_health.duckdb_extension",
     _REPO_ROOT / "build/release/extension/apple_health/apple_health.duckdb_extension",
+    _REPO_ROOT / "build/release/apple_health.duckdb_extension",
 ]
 
 
@@ -25,11 +26,116 @@ def repo_root() -> Path:
 
 
 def find_extension() -> Path:
+    """Locate a locally built unsigned extension binary (developer builds)."""
     for path in _EXT_CANDIDATES:
         if path.is_file():
             return path
     raise FileNotFoundError(
-        "apple_health.duckdb_extension not found. Run `just debug` first."
+        "apple_health.duckdb_extension not found. "
+        "Prefer: INSTALL apple_health FROM community (DuckDB 1.5.5+, macOS), "
+        "or run `just debug` / `just release` for a local unsigned build."
+    )
+
+
+@dataclass(frozen=True)
+class ExtensionLoadInfo:
+    """How ``apple_health`` was loaded into a connection."""
+
+    source: str  # "community" | "local"
+    path: Path | None
+    duckdb_version: str
+    detail: str = ""
+
+
+def load_apple_health(
+    con: duckdb.DuckDBPyConnection,
+    *,
+    prefer_community: bool = True,
+    allow_local: bool = True,
+) -> ExtensionLoadInfo:
+    """LOAD ``apple_health`` on an existing connection.
+
+    Tries community install first (signed, no ``-unsigned``). Falls back to a
+    local ``build/…`` binary when present. The connection must already allow
+    unsigned extensions if only a local binary is available
+    (``allow_unsigned_extensions=true`` at connect time).
+    """
+    version = str(con.execute("SELECT version()").fetchone()[0])
+    errors: list[str] = []
+
+    if prefer_community:
+        try:
+            con.execute("INSTALL apple_health FROM community")
+            con.execute("LOAD apple_health")
+            return ExtensionLoadInfo(
+                source="community",
+                path=None,
+                duckdb_version=version,
+                detail="INSTALL apple_health FROM community",
+            )
+        except Exception as exc:  # noqa: BLE001 — try local next
+            errors.append(f"community: {exc}")
+
+    if allow_local:
+        ext = find_extension()
+        try:
+            con.execute(f"LOAD '{_sql_str(ext.as_posix())}'")
+            return ExtensionLoadInfo(
+                source="local",
+                path=ext,
+                duckdb_version=version,
+                detail=str(ext),
+            )
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"local ({ext}): {exc}")
+
+    joined = "; ".join(errors) if errors else "no sources tried"
+    raise RuntimeError(
+        "Could not LOAD apple_health. "
+        "Need DuckDB **1.5.5+** on **macOS** for community install, "
+        "or a local unsigned build (`just debug`). "
+        f"Details: {joined}"
+    )
+
+
+def connect_with_apple_health(
+    *,
+    prefer_community: bool = True,
+    allow_local: bool = True,
+) -> tuple[duckdb.DuckDBPyConnection, ExtensionLoadInfo]:
+    """Open an in-memory DuckDB connection with ``apple_health`` loaded.
+
+    Community path uses a normal connection. Local fallback reconnects with
+    ``allow_unsigned_extensions`` so developer builds still work.
+    """
+    if prefer_community:
+        con = duckdb.connect()
+        try:
+            info = load_apple_health(
+                con, prefer_community=True, allow_local=False
+            )
+            return con, info
+        except Exception:
+            con.close()
+
+    if not allow_local:
+        raise RuntimeError(
+            "Community INSTALL apple_health failed and local fallback is disabled."
+        )
+
+    ext = find_extension()
+    con = duckdb.connect(config={"allow_unsigned_extensions": "true"})
+    try:
+        con.execute(f"LOAD '{_sql_str(ext.as_posix())}'")
+    except Exception:
+        con.close()
+        raise
+    version = str(con.execute("SELECT version()").fetchone()[0])
+    return con, ExtensionLoadInfo(
+        source="local",
+        path=ext,
+        duckdb_version=version,
+        detail=str(ext),
     )
 
 
@@ -684,16 +790,12 @@ class HealthDataStore:
         acts = [a.strip() for a in activities if a and str(a).strip()]
         in_list = _activity_in_list(acts)
         max_pts = max(10, int(map_points_per_route))
-        ext = find_extension()
-
         path_sql = _sql_str(export.as_posix())
         db_sql = _sql_str(out.as_posix())
-        ext_sql = _sql_str(ext.as_posix())
 
         t0 = time.perf_counter()
-        con = duckdb.connect(config={"allow_unsigned_extensions": "true"})
+        con, _ext_info = connect_with_apple_health(prefer_community=True, allow_local=True)
         try:
-            con.execute(f"LOAD '{ext_sql}'")
             con.execute(f"ATTACH '{db_sql}' AS health")
             con.execute("CREATE SCHEMA IF NOT EXISTS health.gps")
             con.execute("CREATE SCHEMA IF NOT EXISTS health.meta")

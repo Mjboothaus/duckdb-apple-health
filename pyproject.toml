@@ -1,6 +1,6 @@
 [project]
 name = "health-data-store"
-version = "0.1.0"
+version = "0.1.1"
 description = "Local DuckDB health store and walk helpers (companion to duckdb-apple-health)"
 readme = "README.md"
 requires-python = ">=3.12"

@@ -1,5 +1,30 @@
 # Release notes
 
+## v0.1.1 — community extension (2026-09-10)
+
+**Community publish.** `apple_health` is installable from DuckDB community on **macOS**.
+
+### Install
+
+```sql
+INSTALL apple_health FROM community;
+LOAD apple_health;
+```
+
+- DuckDB **1.5.5+**, platforms **`osx_arm64`** / **`osx_amd64`**
+- Merged listing: [duckdb/community-extensions#2653](https://github.com/duckdb/community-extensions/pull/2653)
+- Source pin: tag **v0.1.1** (`TARGET_DUCKDB_VERSION=v1.2.0` stable C extension ABI)
+
+### Fix vs v0.1.0 packaging attempt
+
+v0.1.0 mistakenly stamped extension metadata as C API **v1.5.6** (DuckDB release conflated with C ABI). Hosts only load C-API extensions built for **≤ v1.2.0**. v0.1.1 corrects the stamp so community CI and `LOAD` succeed.
+
+### Still local-only
+
+Linux/Windows/Wasm community binaries, streaming execute, named scan filters — see [ROADMAP.md](ROADMAP.md).
+
+---
+
 ## v0.1.0 — core extension (2026-09-06)
 
 **Layer A freeze.** First numbered core release of the DuckDB Apple Health **scanner** (C, stable C API).
@@ -28,7 +53,7 @@ LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
 FROM read_apple_health('test/data/export.zip');
 ```
 
-Community `INSTALL apple_health FROM community` is **not** available yet. Migration plan: [CREATE_COMM_EXT.md](CREATE_COMM_EXT.md).
+Community install landed in **v0.1.1** — see above and [CREATE_COMM_EXT.md](CREATE_COMM_EXT.md).
 
 ### Correctness (freeze)
 
