@@ -17,8 +17,8 @@ Multi-GB zips are normal. **Do not commit a real export to git.**
 Needs DuckDB CLI **1.5.5+** on **macOS** (`osx_arm64` or `osx_amd64`).
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
 ```
 
 If install 404s, your DuckDB build is older than the published community artifacts — upgrade the CLI (Homebrew/`duckdb` releases) or use the local build path below.
@@ -28,8 +28,8 @@ If install 404s, your DuckDB build is older than the published community artifac
 Needs Xcode CLT, CMake, Python 3, and a DuckDB CLI that can load unsigned extensions.
 
 ```bash
-git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
-cd duckdb-apple-health
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-healthkit-export.git
+cd duckdb-healthkit-export
 brew install cmake ninja ccache just
 just check-tools
 just bootstrap   # configure (if needed) + debug + fixture
@@ -41,9 +41,9 @@ duckdb -unsigned
 ```
 
 ```sql
-LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
+LOAD 'build/debug/extension/healthkit_export/healthkit_export.duckdb_extension';
 -- alternate path after debug:
--- LOAD 'build/debug/apple_health.duckdb_extension';
+-- LOAD 'build/debug/healthkit_export.duckdb_extension';
 ```
 
 If `LOAD` cannot find the file:
@@ -55,12 +55,12 @@ find build -name '*.duckdb_extension'
 ## 4. Query
 
 ```sql
-FROM read_apple_health('~/Downloads/export.zip');
+FROM read_healthkit_export('~/Downloads/export.zip');
 
-FROM apple_health_workouts('export.zip');
-FROM apple_health_workout_routes('export.zip');
-FROM apple_health_workout_route_points('export.zip');
-FROM apple_health_activity_summaries('export.zip');
+FROM healthkit_workouts('export.zip');
+FROM healthkit_workout_routes('export.zip');
+FROM healthkit_workout_route_points('export.zip');
+FROM healthkit_activity_summaries('export.zip');
 ```
 
 Synthetic fixture (no PHI):
@@ -75,13 +75,13 @@ just demo-summaries
 ```
 
 ```sql
-FROM read_apple_health('test/data/export.zip');
+FROM read_healthkit_export('test/data/export.zip');
 ```
 
 Named `types` / `start` / `end` filters are not in v0.1 yet — filter in SQL:
 
 ```sql
-SELECT * FROM read_apple_health('export.zip')
+SELECT * FROM read_healthkit_export('export.zip')
 WHERE type_short = 'HeartRate';
 ```
 
@@ -90,7 +90,7 @@ WHERE type_short = 'HeartRate';
 ```sql
 COPY (
   SELECT *
-  FROM read_apple_health('export.zip')
+  FROM read_healthkit_export('export.zip')
   WHERE type_short = 'HeartRate'
 ) TO 'hr.parquet' (FORMAT parquet);
 

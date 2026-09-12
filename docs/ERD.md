@@ -17,7 +17,7 @@ export.zip  (full snapshot, outside git)
 extension table functions   (scan; occasional, can be slow)
     │
     ▼
-output/apple_health.duckdb  (local database; gitignored)
+output/healthkit_store.duckdb  (local database; gitignored)
     │
     ▼
 SQL / map notebook          (fast, everyday)
@@ -57,11 +57,11 @@ No persistent schema — each call scans `path`:
 
 | Function | One row means |
 |---|---|
-| `apple_health_workouts(path)` | A workout summary (type, duration, distance, energy, dates) |
-| `apple_health_workout_routes(path)` | A GPS route index (`gpx_path` + parent workout dates/type) |
-| `apple_health_workout_route_points(path)` | One GPS point (`lat`/`lon`/…) |
-| `read_apple_health(path)` | A Health record sample |
-| `apple_health_activity_summaries(path)` | One day of rings |
+| `healthkit_workouts(path)` | A workout summary (type, duration, distance, energy, dates) |
+| `healthkit_workout_routes(path)` | A GPS route index (`gpx_path` + parent workout dates/type) |
+| `healthkit_workout_route_points(path)` | One GPS point (`lat`/`lon`/…) |
+| `read_healthkit_export(path)` | A Health record sample |
+| `healthkit_activity_summaries(path)` | One day of rings |
 
 ```mermaid
 erDiagram
@@ -99,7 +99,7 @@ erDiagram
 
 ## Local database layout
 
-**File:** `output/apple_health.duckdb` (under gitignored `output/`)
+**File:** `output/healthkit_store.duckdb` (under gitignored `output/`)
 
 ```mermaid
 erDiagram
@@ -185,7 +185,7 @@ just build-db export_zip=/path/to/export.zip
 just build-db export_zip=/path/to/export.zip activities=Walking,Hiking,Running
 
 # Open it
-duckdb output/apple_health.duckdb
+duckdb output/healthkit_store.duckdb
 SHOW TABLES;
 SELECT * FROM ingest_manifest;
 SELECT activity_type_short, workout_start_date, gpx_path
@@ -216,18 +216,18 @@ Apple still gives **full** zips. Updating over time means **merge into this data
 Reusable (non-notebook) API:
 
 ```text
-python/health_data_store/
-  store.py   # HealthDataStore — open DB, list_routes, route_points, build_from_export
+python/healthkit_store/
+  store.py   # HealthkitStore — open DB, list_routes, route_points, build_from_export
   maps.py    # build_route_map, downsample_points (Folium, no marimo)
 ```
 
-`notebooks/map_walks.py` is UI-only. `scripts/build_health_db.py` calls `HealthDataStore.build_from_export`.
+`notebooks/map_walks.py` is UI-only. `scripts/build_health_db.py` calls `HealthkitStore.build_from_export`.
 
 ### Start / end place names
 
 Apple Health does **not** store suburb/street labels on workouts. Derive them:
 
-1. Take first/last GPS point per `gpx_path` (`HealthDataStore.route_endpoints`).
+1. Take first/last GPS point per `gpx_path` (`HealthkitStore.route_endpoints`).
 2. Reverse-geocode with OpenStreetMap **Nominatim** (free, no key) via `enrich_with_places`.
 3. Cache under `output/geocode_cache.json` (gitignored) so repeats are offline.
 
@@ -237,5 +237,5 @@ Materialise with `just geocode-places` (or `just geocode-places limit=50`) into 
 
 ## Privacy
 
-- Real zips and `output/apple_health.duckdb` stay **off git**.
+- Real zips and `output/healthkit_store.duckdb` stay **off git**.
 - GPS is precise location — treat carefully.

@@ -10,7 +10,7 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO / "python"))
 
-from health_data_store import DEFAULT_DB_PATH, HealthDataStore  # noqa: E402
+from healthkit_store import DEFAULT_DB_PATH, HealthkitStore  # noqa: E402
 
 
 def main() -> None:
@@ -46,7 +46,7 @@ def main() -> None:
         flush=True,
     )
 
-    store = HealthDataStore(db, read_only=False)
+    store = HealthkitStore(db, read_only=False)
     try:
         stats = store.materialise_route_places(
             only_missing=not args.all,

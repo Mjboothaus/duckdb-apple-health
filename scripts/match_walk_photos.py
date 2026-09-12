@@ -10,7 +10,7 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO / "python"))
 
-from health_data_store.photos import materialise_walk_photos  # noqa: E402
+from healthkit_store.photos import materialise_walk_photos  # noqa: E402
 
 
 def main() -> None:

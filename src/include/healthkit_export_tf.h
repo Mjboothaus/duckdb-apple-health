@@ -1,0 +1,9 @@
+#pragma once
+
+#include "duckdb_extension.h"
+
+void RegisterReadHealthkitExportFunction(duckdb_connection connection);
+void RegisterHealthkitWorkoutsFunction(duckdb_connection connection);
+void RegisterHealthkitActivitySummariesFunction(duckdb_connection connection);
+void RegisterHealthkitWorkoutRoutesFunction(duckdb_connection connection);
+void RegisterHealthkitWorkoutRoutePointsFunction(duckdb_connection connection);

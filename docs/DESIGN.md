@@ -1,6 +1,6 @@
 # Design & development guide
 
-Single source of truth for **what** `duckdb-apple-health` is, **how** it is built, and **what must not change** without an explicit decision.
+Single source of truth for **what** `duckdb-healthkit-export` is, **how** it is built, and **what must not change** without an explicit decision.
 
 - Product overview & install: [README.md](../README.md), [QUICKSTART.md](QUICKSTART.md)
 - Forward plan (v0.2+, DuckDB 2.0 packaging): [ROADMAP.md](ROADMAP.md)
@@ -33,7 +33,7 @@ Not a warehouse, MCP server, dashboard, or dbt package.
 
 | Topic | Decision |
 |---|---|
-| GitHub | Public `mjboothaus/duckdb-apple-health` (not the old personal C++ stub) |
+| GitHub | Public `mjboothaus/duckdb-healthkit-export` (not the old personal C++ stub) |
 | Licence | Apache-2.0 |
 | Language | **C.** Thin C++ only if the stable table-function C API is unusable |
 | ABI | Stable C API. No `#include <duckdb.hpp>`, no unstable extension internals |
@@ -50,7 +50,7 @@ Not a warehouse, MCP server, dashboard, or dbt package.
 - Output is flat rows, not object graphs
 - SAX-style callbacks are C-shaped
 - ABI bet: talk to DuckDB only through `duckdb_extension.h`
-- If bind/init/emit in C becomes unmaintainable, switch **only** `apple_health_tf.c` to a stable C++ wrapper; leave `parse_health.c` / `zip_source.c` as C
+- If bind/init/emit in C becomes unmaintainable, switch **only** `healthkit_export_tf.c` to a stable C++ wrapper; leave `parse_health.c` / `zip_source.c` as C
 
 ### Hard rules (do not break casually)
 
@@ -77,7 +77,7 @@ path
  parse_health.c     stream tags, dates, type_short, value vs value_text
         │
         ▼
- apple_health_tf.c  DuckDB C API table functions only
+ healthkit_export_tf.c  DuckDB C API table functions only
 ```
 
 ### Semantic rules
@@ -89,9 +89,9 @@ path
 
 ### v0.1 SQL surface
 
-1. `read_apple_health(path)` — full v0.1 record columns; named `types` / `start` / `end` / `ignore_errors` still **planned**
-2. `apple_health_workouts(path)`
-3. `apple_health_activity_summaries(path)` — nullable columns for both `appleMoveMinutes*` and `appleMoveTime*`
+1. `read_healthkit_export(path)` — full v0.1 record columns; named `types` / `start` / `end` / `ignore_errors` still **planned**
+2. `healthkit_workouts(path)`
+3. `healthkit_activity_summaries(path)` — nullable columns for both `appleMoveMinutes*` and `appleMoveTime*`
 
 **Date parse:** `yyyy-MM-dd HH:mm:ss Z` (`+1100`, `-0800`, `+0530`) → `TIMESTAMPTZ`.
 
@@ -104,7 +104,7 @@ README.md  CHANGELOG.md  CONTRIBUTING.md  SECURITY.md  LICENSE
 docs/          # DESIGN, ERD, ROADMAP, QUICKSTART, RELEASE_NOTES, …
 justfile  Makefile  CMakeLists.txt
 src/
-  parse_health.{c,h}  zip_source.{c,h}  apple_health_tf.c
+  parse_health.{c,h}  zip_source.{c,h}  healthkit_export_tf.c
   parse_health_main.c   # CLI
   capi_quack.c          # entrypoint (template name)
   add_numbers.c         # template sample scalar
@@ -121,11 +121,11 @@ duckdb_capi/  extension-ci-tools/
 
 | Area | Status |
 |---|---|
-| C-API template vendored as `apple_health` | Done |
+| C-API template vendored as `healthkit_export` | Done |
 | Unsigned load (1.5.x / C_STRUCT metadata) | Done |
 | Streaming XML parser + CLI | Done |
 | Zip / dir / xml paths | Done |
-| `read_apple_health` + workouts + activity summaries | Done |
+| `read_healthkit_export` + workouts + activity summaries | Done |
 | Fixture golden + pytest vs `healthkit-to-sqlite` | Done |
 | Real-export smoke (multi-million rows) | Done (manual); formal HK full-import optional |
 | Docs pass / community INSTALL | Docs beta done; community INSTALL not yet |
@@ -160,8 +160,8 @@ just pytest-ext
 
 ```sql
 -- duckdb -unsigned
-LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
-FROM read_apple_health('test/data/export.zip');
+LOAD 'build/debug/extension/healthkit_export/healthkit_export.duckdb_extension';
+FROM read_healthkit_export('test/data/export.zip');
 ```
 
 ---

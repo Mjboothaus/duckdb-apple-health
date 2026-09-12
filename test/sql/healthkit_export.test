@@ -1,0 +1,10 @@
+# name: test/sql/healthkit_export.test
+# description: healthkit_export extension smoke
+# group: [healthkit_export]
+
+require healthkit_export
+
+query I
+SELECT count(*) FROM read_healthkit_export('test/data/export.zip');
+----
+7

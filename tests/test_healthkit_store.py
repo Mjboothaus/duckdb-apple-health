@@ -1,4 +1,4 @@
-"""Tests for health_data_store.HealthDataStore (uses local DB if present)."""
+"""Tests for healthkit_store.HealthkitStore (uses local DB if present)."""
 
 from __future__ import annotations
 
@@ -6,16 +6,16 @@ from pathlib import Path
 
 import pytest
 
-from health_data_store import HealthDataStore, downsample_points
+from healthkit_store import HealthkitStore, downsample_points
 
 REPO = Path(__file__).resolve().parents[1]
 
-DB = REPO / "output" / "apple_health.duckdb"
+DB = REPO / "output" / "healthkit_store.duckdb"
 
 
-@pytest.mark.skipif(not DB.is_file(), reason="output/apple_health.duckdb not built")
+@pytest.mark.skipif(not DB.is_file(), reason="output/healthkit_store.duckdb not built")
 def test_store_lists_routes_and_points():
-    with HealthDataStore(DB) as store:
+    with HealthkitStore(DB) as store:
         summary = store.summary()
         assert set(summary["t"]) >= {"workouts", "routes", "route_points_map"}
         cat = store.list_routes(activities=["Walking", "Hiking"], limit=5)
@@ -50,7 +50,7 @@ def test_downsample_keeps_ends():
 
 
 def test_format_nominatim_address_prefers_suburb():
-    from health_data_store import format_nominatim_address
+    from healthkit_store import format_nominatim_address
 
     label = format_nominatim_address(
         {
@@ -68,7 +68,7 @@ def test_format_nominatim_address_prefers_suburb():
 
 
 def test_reverse_geocoder_uses_cache(tmp_path):
-    from health_data_store import ReverseGeocoder
+    from healthkit_store import ReverseGeocoder
 
     cache = tmp_path / "geo.json"
     cache.write_text(
@@ -80,15 +80,15 @@ def test_reverse_geocoder_uses_cache(tmp_path):
     assert hit.label == "Test Place, NSW"
 
 
-@pytest.mark.skipif(not DB.is_file(), reason="output/apple_health.duckdb not built")
+@pytest.mark.skipif(not DB.is_file(), reason="output/healthkit_store.duckdb not built")
 def test_route_endpoints_and_enrich_offline():
     class FakeGeo:
         def lookup(self, lat, lon, *, fetch=True):
-            from health_data_store.places import PlaceLabel
+            from healthkit_store.places import PlaceLabel
 
             return PlaceLabel(lat=lat, lon=lon, label=f"P({lat:.2f},{lon:.2f})")
 
-    with HealthDataStore(DB) as store:
+    with HealthkitStore(DB) as store:
         cat = store.list_routes(activities=["Walking", "Hiking"], limit=2)
         ends = store.route_endpoints(cat["gpx_path"].tolist())
         assert len(ends) >= 1
@@ -98,12 +98,12 @@ def test_route_endpoints_and_enrich_offline():
         assert enriched["start_place"].notna().any()
 
 
-@pytest.mark.skipif(not DB.is_file(), reason="output/apple_health.duckdb not built")
+@pytest.mark.skipif(not DB.is_file(), reason="output/healthkit_store.duckdb not built")
 def test_materialise_route_places_writes_table(tmp_path):
     import shutil
     import tempfile
 
-    from health_data_store.places import PlaceLabel
+    from healthkit_store.places import PlaceLabel
 
     class FakeGeo:
         def lookup(self, lat, lon, *, fetch=True):
@@ -112,9 +112,9 @@ def test_materialise_route_places_writes_table(tmp_path):
     # Copy DB so we do not mutate the user's primary file in unit tests.
     td = Path(tempfile.mkdtemp(prefix="ah-places-"))
     try:
-        db_copy = td / "apple_health.duckdb"
+        db_copy = td / "healthkit_store.duckdb"
         shutil.copy2(DB, db_copy)
-        store = HealthDataStore(db_copy, read_only=False)
+        store = HealthkitStore(db_copy, read_only=False)
         try:
             cat = store.list_routes(limit=3)
             paths = cat["gpx_path"].tolist()
@@ -141,11 +141,11 @@ def test_materialise_route_places_writes_table(tmp_path):
         shutil.rmtree(td, ignore_errors=True)
 
 
-@pytest.mark.skipif(not DB.is_file(), reason="output/apple_health.duckdb not built")
+@pytest.mark.skipif(not DB.is_file(), reason="output/healthkit_store.duckdb not built")
 def test_walk_photos_and_filmstrip_if_present():
-    from health_data_store.maps import filmstrip_html
+    from healthkit_store.maps import filmstrip_html
 
-    with HealthDataStore(DB) as store:
+    with HealthkitStore(DB) as store:
         # table may be empty if user never ran photos-for-walks
         ph = store.photos_for_gpx()
         assert ph is not None

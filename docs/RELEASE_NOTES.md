@@ -1,14 +1,33 @@
 # Release notes
 
+## v0.2.0 — rename to `healthkit_export` (2026-09-12)
+
+**Breaking rename** of the extension id and SQL table functions (no aliases).
+
+| Before (≤24h community preview) | After |
+|--|--|
+| `INSTALL apple_health FROM community` | `INSTALL healthkit_export FROM community` |
+| `read_apple_health` | `read_healthkit_export` |
+| `apple_health_workouts` | `healthkit_workouts` |
+| `apple_health_activity_summaries` | `healthkit_activity_summaries` |
+| `apple_health_workout_routes` | `healthkit_workout_routes` |
+| `apple_health_workout_route_points` | `healthkit_workout_route_points` |
+
+Scanner behaviour and column schemas are unchanged. Local optional DB path remains `output/healthkit_store.duckdb`.
+
+Trademark: not affiliated with Apple Inc.
+
+---
+
 ## v0.1.1 — community extension (2026-09-10)
 
-**Community publish.** `apple_health` is installable from DuckDB community on **macOS**.
+**Community publish.** `healthkit_export` is installable from DuckDB community on **macOS**.
 
 ### Install
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
 ```
 
 - DuckDB **1.5.5+**, platforms **`osx_arm64`** / **`osx_amd64`**
@@ -33,11 +52,11 @@ Linux/Windows/Wasm community binaries, streaming execute, named scan filters —
 
 | Function | Role |
 |----------|------|
-| `read_apple_health(path)` | Top-level Health records |
-| `apple_health_workouts(path)` | Workouts |
-| `apple_health_activity_summaries(path)` | Daily activity rings |
-| `apple_health_workout_routes(path)` | WorkoutRoute + FileReference (`gpx_path`) |
-| `apple_health_workout_route_points(path)` | GPX track points |
+| `read_healthkit_export(path)` | Top-level Health records |
+| `healthkit_workouts(path)` | Workouts |
+| `healthkit_activity_summaries(path)` | Daily activity rings |
+| `healthkit_workout_routes(path)` | WorkoutRoute + FileReference (`gpx_path`) |
+| `healthkit_workout_route_points(path)` | GPX track points |
 
 `path` may be `export.zip`, a directory containing `export.xml`, or `export.xml`.
 
@@ -49,8 +68,8 @@ duckdb -unsigned
 ```
 
 ```sql
-LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
-FROM read_apple_health('test/data/export.zip');
+LOAD 'build/debug/extension/healthkit_export/healthkit_export.duckdb_extension';
+FROM read_healthkit_export('test/data/export.zip');
 ```
 
 Community install landed in **v0.1.1** — see above and [CREATE_COMM_EXT.md](CREATE_COMM_EXT.md).
@@ -71,7 +90,7 @@ Community install landed in **v0.1.1** — see above and [CREATE_COMM_EXT.md](CR
 
 ### Not this release (add-ons)
 
-Optional same-repo Python package **`health-data-store`**, maps, Photos, journeys, marimo walk-stories — **not** part of the extension binary. See [PYTHON_PACKAGE.md](PYTHON_PACKAGE.md), [PERSONA.md](PERSONA.md).
+Optional same-repo Python package **`healthkit-store`**, maps, Photos, journeys, marimo walk-stories — **not** part of the extension binary. See [PYTHON_PACKAGE.md](PYTHON_PACKAGE.md), [PERSONA.md](PERSONA.md).
 
 ### Upgrade from v0.1.0-beta
 

@@ -1,9 +1,9 @@
 """Local DuckDB health store and optional map / Photos / journey helpers.
 
-Companion to the duckdb-apple-health C extension (not required to LOAD the
+Companion to the duckdb-healthkit-export C extension (not required to LOAD the
 extension). Install extras as needed::
 
-    uv add 'health-data-store[maps]'
+    uv add 'healthkit-store[maps]'
     uv sync --extra maps --extra notebooks
 """
 
@@ -14,29 +14,29 @@ from typing import TYPE_CHECKING, Any
 from .store import (
     DEFAULT_DB_PATH,
     ExtensionLoadInfo,
-    HealthDataStore,
-    connect_with_apple_health,
+    HealthkitStore,
+    connect_with_healthkit_export,
     find_extension,
-    load_apple_health,
+    load_healthkit_export,
     repo_root,
 )
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 __all__ = [
     "DEFAULT_DB_PATH",
     "ExtensionLoadInfo",
-    "HealthDataStore",
+    "HealthkitStore",
     "ReverseGeocoder",
     "build_route_map",
-    "connect_with_apple_health",
+    "connect_with_healthkit_export",
     "create_journey",
     "downsample_points",
     "filmstrip_html",
     "find_extension",
     "format_nominatim_address",
     "import_journey_manifest",
-    "load_apple_health",
+    "load_healthkit_export",
     "materialise_walk_photos",
     "match_photos_to_walks",
     "repo_root",

@@ -10,8 +10,8 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO / "python"))
 
-from health_data_store import DEFAULT_DB_PATH, HealthDataStore  # noqa: E402
-from health_data_store.journeys import create_journey, set_sections  # noqa: E402
+from healthkit_store import DEFAULT_DB_PATH, HealthkitStore  # noqa: E402
+from healthkit_store.journeys import create_journey, set_sections  # noqa: E402
 
 
 def main() -> None:
@@ -33,7 +33,7 @@ def main() -> None:
     p_set.add_argument("paths_file", type=Path, help="Text file: one gpx_path per line")
 
     args = ap.parse_args()
-    store = HealthDataStore(args.db, read_only=False)
+    store = HealthkitStore(args.db, read_only=False)
     try:
         con = store._write_con()
         if args.cmd == "list":

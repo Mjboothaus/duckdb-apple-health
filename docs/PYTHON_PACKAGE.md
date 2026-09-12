@@ -1,27 +1,27 @@
-# Python package — `health-data-store`
+# Python package — `healthkit-store`
 
 Last updated: 2026-09-06.
 
-Companion library for the **duckdb-apple-health** C extension. It owns the **local DuckDB health store** and optional walk/map/Photos helpers. It is **not** required to `LOAD` the extension or run SQL table functions.
+Companion library for the **duckdb-healthkit-export** C extension. It owns the **local DuckDB health store** and optional walk/map/Photos helpers. It is **not** required to `LOAD` the extension or run SQL table functions.
 
 ## Why this name (not “explore”, not “Apple”)
 
 | Candidate | Verdict |
 |-----------|---------|
-| `health-data-store` | **Chosen.** Matches the durable artefact (`HealthDataStore`, `just build-db`, local `.duckdb` file). Neutral; no Apple trademark in the package name. |
+| `healthkit-store` | **Chosen.** Matches the durable artefact (`HealthkitStore`, `just build-db`, local `.duckdb` file). Neutral; no Apple trademark in the package name. |
 | `health-data-explore` | Good product *verb*, weaker library name. Exploration UIs (marimo) are still **experimental** and optional; naming the whole package after them oversells Layer C. |
 | `apple-health-*` | Avoid on PyPI; keep “Apple Health export” in prose only. |
 
-Import: `health_data_store`. Class name stays `HealthDataStore`.
+Import: `healthkit_store`. Class name stays `HealthkitStore`.
 
 ## Repo strategy: extension + add-ons together
 
-**Keep one public repo** (`duckdb-apple-health`) for now:
+**Keep one public repo** (`duckdb-healthkit-export`) for now:
 
 | In this repo | Role |
 |--------------|------|
-| C extension (`apple_health`) | Layer A — scanner; future community `INSTALL` candidate |
-| `health-data-store` Python | Layers B/C — local DB, maps helpers, scripts, experimental notebooks |
+| C extension (`healthkit_export`) | Layer A — scanner; future community `INSTALL` candidate |
+| `healthkit-store` Python | Layers B/C — local DB, maps helpers, scripts, experimental notebooks |
 
 **Do not** split to a second GitHub repo until the extension is on community (or clearly blocked) *and* the Python package has independent users. One clone, one VERSION line of sight, simpler for the persona.
 
@@ -32,8 +32,8 @@ When community publish lands, the **extension binary** is built from this same r
 Target UX:
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
 ```
 
 That is the supported “publish” path: PR a single `extensions/apple_health/description.yml` to [duckdb/community-extensions](https://github.com/duckdb/community-extensions); DuckDB CI builds, signs, hosts.
@@ -69,14 +69,14 @@ uv sync --all-extras
 Future PyPI (not a v0.1 gate):
 
 ```bash
-pip install 'health-data-store[maps]'
+pip install 'healthkit-store[maps]'
 ```
 
 ## Extras
 
 | Extra | Adds | Enables |
 |-------|------|---------|
-| *(base)* | duckdb, pandas, pyyaml, pytz | `HealthDataStore`, journeys, places, Photos via DuckDB `ATTACH` (no osxphotos) |
+| *(base)* | duckdb, pandas, pyyaml, pytz | `HealthkitStore`, journeys, places, Photos via DuckDB `ATTACH` (no osxphotos) |
 | `maps` | folium | `build_route_map`, scripted/HTML maps — **preferred** map path for v0.1 |
 | `notebooks` | marimo, altair, polars, folium | `explore_export` / `map_walks` / `walk_stories` — **experimental** |
 | `dev` | pytest, healthkit-to-sqlite | extension golden tests |
@@ -88,16 +88,16 @@ Marimo notebooks under `notebooks/` are **not fully verified**. Prefer:
 
 - SQL + extension demos (`just demo`)  
 - `just build-db` + DuckDB CLI  
-- Folium via `health_data_store.maps` / scripts  
+- Folium via `healthkit_store.maps` / scripts  
 
 Treat `just map-walks` / `just walk-stories` as preview until smoke-tested on a real local DB.
 
 ## Imports
 
 ```python
-from health_data_store import HealthDataStore, find_extension
+from healthkit_store import HealthkitStore, find_extension
 # maps extra:
-from health_data_store import build_route_map, downsample_points
+from healthkit_store import build_route_map, downsample_points
 ```
 
 Optional symbols are **lazy** — base import does not require Folium.

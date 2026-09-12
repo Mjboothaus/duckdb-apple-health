@@ -11,7 +11,7 @@
 | [RELEASE_PLAN.md](RELEASE_PLAN.md) | Initial release: core / local DB / add-ons |
 | [VERSIONING.md](VERSIONING.md) | Extension + Python SemVer and release tags |
 | [CREATE_COMM_EXT.md](CREATE_COMM_EXT.md) | Community extension status + how listing works |
-| [PYTHON_PACKAGE.md](PYTHON_PACKAGE.md) | Companion `health-data-store` package + extras |
+| [PYTHON_PACKAGE.md](PYTHON_PACKAGE.md) | Companion `healthkit-store` package + extras |
 | [LINKEDIN_ANNOUNCEMENT.md](LINKEDIN_ANNOUNCEMENT.md) | Public announcement draft |
 
 Repo root keeps `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, and `SECURITY.md` (GitHub conventions).

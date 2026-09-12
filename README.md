@@ -1,18 +1,22 @@
-# duckdb-apple-health
+# duckdb-healthkit-export
 
-**v0.1.1** — Apple Health exports → DuckDB SQL, in-process.
+**v0.2.0** — Health app / HealthKit `export.zip` → DuckDB SQL, in-process.
 
-A DuckDB **scanner** extension that turns an Apple Health `export.zip` / `export.xml` into typed tables. Written in **C** on the **stable C API**. Available as a **[community extension](https://duckdb.org/community_extensions/)** on **macOS** (DuckDB **1.5.5+**). See [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md).
+DuckDB **scanner** extension **`healthkit_export`**: reads exports produced by the Apple Health app (HealthKit `export.zip` / `export.xml`) as typed tables. Written in **C** on the **stable C API**. Community publish on **macOS** (DuckDB **1.5.5+**) is being updated to this name — see [CREATE_COMM_EXT.md](docs/CREATE_COMM_EXT.md).
+
+> **Not affiliated with, endorsed by, or sponsored by Apple Inc.** Apple, Apple Health, and HealthKit are trademarks of Apple Inc.
+
+**Names:** GitHub repo **`duckdb-healthkit-export`**. Extension **`healthkit_export`**. Optional Python package **`healthkit-store`** (`import healthkit_store`), default local DB `output/healthkit_store.duckdb`.
 
 Data never leaves the process. This repository contains **no real Health exports**.
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
 
-FROM read_apple_health('~/Downloads/export.zip');
-FROM apple_health_workouts('export.zip');
-FROM apple_health_activity_summaries('export.xml');
+FROM read_healthkit_export('~/Downloads/export.zip');
+FROM healthkit_workouts('export.zip');
+FROM healthkit_activity_summaries('export.xml');
 ```
 
 Materialise once, then query Parquet (the fast path):
@@ -20,7 +24,7 @@ Materialise once, then query Parquet (the fast path):
 ```sql
 COPY (
   SELECT *
-  FROM read_apple_health('export.zip')
+  FROM read_healthkit_export('export.zip')
   WHERE type_short = 'HeartRate'
 ) TO 'hr.parquet' (FORMAT parquet);
 ```
@@ -29,12 +33,12 @@ COPY (
 
 ### What that means
 
-Apple Health exports are large attribute-centric XML (often multi‑GB once unzipped). Reading them with a table function is a **full scan**: CPU and memory scale with how much of the export you touch, and **re-running the same `SELECT` re-scans** unless you materialise.
+Health app exports are large attribute-centric XML (often multi‑GB once unzipped). Reading them with a table function is a **full scan**: CPU and memory scale with how much of the export you touch, and **re-running the same `SELECT` re-scans** unless you materialise.
 
 The design is therefore two-stage:
 
 1. **Scan once** (extension) — filter in SQL if you can, accept that the first pass is the expensive one.
-2. **Materialise** — `COPY … TO '….parquet'` and/or `just build-db` → `output/apple_health.duckdb`, then iterate in milliseconds on columnar storage.
+2. **Materialise** — `COPY … TO '….parquet'` and/or `just build-db` → `output/healthkit_store.duckdb`, then iterate in milliseconds on columnar storage.
 
 v0.1 still parses largely in **bind** and can buffer rows (RAM roughly tracks export size for a full load). That is a known limit, not the end state — see [Performance](#performance-real-exports) and [ROADMAP.md](docs/ROADMAP.md).
 
@@ -56,16 +60,18 @@ This project fills the gap between those: **HealthKit-aware, in-process SQL** ai
 - Stable C ABI so the binary is not rebuilt for every DuckDB patch
 - Optional **Python add-ons** (local DB, maps, Photos, journeys) — not required to unlock data in SQL
 
-## Status (v0.1.1)
+## Status (v0.2.0)
 
 | | |
 |---|---|
-| Version | **v0.1.1** (community package); core freeze was **v0.1.0** |
-| Install | **`INSTALL apple_health FROM community`** on **macOS** (`osx_arm64` / `osx_amd64`) for DuckDB **1.5.5+** — [PR #2653](https://github.com/duckdb/community-extensions/pull/2653) merged |
-| Platforms | Community binaries: **macOS only** for now; Linux/Windows/Wasm excluded until CI widens |
-| DuckDB | Community host **1.5.5**; local unsigned builds still work for development ([ROADMAP.md](docs/ROADMAP.md) for 2.0) |
+| Extension name | **`healthkit_export`** (renamed from short-lived `apple_health` community id) |
+| Version | **v0.2.0** |
+| Install | **`INSTALL healthkit_export FROM community`** on **macOS** once the rename listing lands; until then use a local unsigned build |
+| First community listing | [PR #2653](https://github.com/duckdb/community-extensions/pull/2653) published **`apple_health`** briefly — **use `healthkit_export` going forward** |
+| Platforms | Community target: **macOS only** for now |
+| DuckDB | Host **1.5.5+**; local unsigned builds for development |
 | Correctness | SQLLogic + fixture golden + pytest vs `healthkit-to-sqlite` (top-level records) |
-| Limits | Parse currently buffers in bind (RAM ∝ export size); named `types`/`start`/`end` filters not shipped yet |
+| Limits | Parse buffers in bind (RAM ∝ export size); named `types`/`start`/`end` filters not shipped yet |
 
 See [RELEASE_NOTES.md](docs/RELEASE_NOTES.md) and [ROADMAP.md](docs/ROADMAP.md).
 
@@ -73,7 +79,7 @@ See [RELEASE_NOTES.md](docs/RELEASE_NOTES.md) and [ROADMAP.md](docs/ROADMAP.md).
 
 **C (core).** Parser and zip code have no DuckDB headers. Only the table-function / entrypoint files talk to the C API. Versioning: root [`VERSION`](VERSION) + git tags → extension metadata ([VERSIONING.md](docs/VERSIONING.md)).
 
-**Python (supplementary package, optional).** Installable as **`health-data-store`** (`import health_data_store`) under `python/health_data_store/`. Base: local DuckDB store, journeys, places, Photos via `ATTACH`. Extras: `maps`, `notebooks`, `dev`, `all` — see [PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md). Not required to `LOAD` the extension. Not mixed into the C binary. v0.1 does not require PyPI publish.
+**Python (supplementary package, optional).** Installable as **`healthkit-store`** (`import healthkit_store`) under `python/healthkit_store/`. Base: local DuckDB store, journeys, places, Photos via `ATTACH`. Extras: `maps`, `notebooks`, `dev`, `all` — see [PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md). Not required to `LOAD` the extension. Not mixed into the C binary. v0.1 does not require PyPI publish.
 
 ## Requirements (Mac)
 
@@ -94,9 +100,9 @@ brew install cmake python ninja ccache just
 ## Install (community — preferred)
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
-FROM read_apple_health('test/data/export.zip');  -- or your export.zip
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
+FROM read_healthkit_export('test/data/export.zip');  -- or your export.zip
 ```
 
 Requires DuckDB **1.5.5+** on **macOS**. Older CLI builds (e.g. 1.5.2) will 404 on the community CDN until you upgrade.
@@ -104,8 +110,8 @@ Requires DuckDB **1.5.5+** on **macOS**. Older CLI builds (e.g. 1.5.2) will 404 
 ## Build (local, unsigned — developers)
 
 ```bash
-git clone --recurse-submodules git@github.com:mjboothaus/duckdb-apple-health.git
-cd duckdb-apple-health
+git clone --recurse-submodules git@github.com:mjboothaus/duckdb-healthkit-export.git
+cd duckdb-healthkit-export
 just bootstrap   # or: just configure && just debug
 ```
 
@@ -114,15 +120,15 @@ duckdb -unsigned
 ```
 
 ```sql
-LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
-FROM read_apple_health('test/data/export.zip');
+LOAD 'build/debug/extension/healthkit_export/healthkit_export.duckdb_extension';
+FROM read_healthkit_export('test/data/export.zip');
 ```
 
 Full walkthrough: [QUICKSTART.md](docs/QUICKSTART.md).
 
-## v0.1 SQL API
+## SQL API
 
-### `read_apple_health(path)` — **implemented**
+### `read_healthkit_export(path)` — **implemented**
 
 | Column | Type | Notes |
 |---|---|---|
@@ -139,19 +145,19 @@ Full walkthrough: [QUICKSTART.md](docs/QUICKSTART.md).
 
 Named parameters `types` / `start` / `end` / `ignore_errors` are **planned** (filter in SQL for now).
 
-### `apple_health_workouts(path)` — **implemented**
+### `healthkit_workouts(path)` — **implemented**
 
 Activity type, duration, distance, energy, dates, source/device.
 
-### `apple_health_workout_routes(path)` — **implemented**
+### `healthkit_workout_routes(path)` — **implemented**
 
 Route metadata + `gpx_path` (`FileReference`) with parent workout type/dates for joins.
 
-### `apple_health_workout_route_points(path)` — **implemented**
+### `healthkit_workout_route_points(path)` — **implemented**
 
 GPX `trkpt` rows: lat/lon/ele/time, optional speed/course/h_acc/v_acc, joined to parent workout via route metadata.
 
-### `apple_health_activity_summaries(path)` — **implemented**
+### `healthkit_activity_summaries(path)` — **implemented**
 
 Daily rings. Both `appleMoveMinutes*` (older) and `appleMoveTime*` (iOS 14+) as nullable columns.
 
@@ -180,12 +186,12 @@ just pytest-ext-real export_zip=/path/to/export.zip
 
 **You do not need this section to use the C extension.** Community `INSTALL` / `LOAD` is enough for SQL.
 
-Same repo, separate tooling: Python helpers that build a **local DuckDB file** from your export, then optional maps, multi-day journeys, and Photos matching. Package: **`health-data-store`** ([PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md)). Suggested path for going further: [PERSONA.md](docs/PERSONA.md).
+Same repo, separate tooling: Python helpers that build a **local DuckDB file** from your export, then optional maps, multi-day journeys, and Photos matching. Package: **`healthkit-store`** ([PYTHON_PACKAGE.md](docs/PYTHON_PACKAGE.md)). Suggested path for going further: [PERSONA.md](docs/PERSONA.md).
 
 | Step | Command | What it does |
 |------|---------|----------------|
 | Dev env | `just uv-sync` | Install Python extras (`maps`, `notebooks`, …) |
-| Local DB | `just build-db export_zip=/path/to/export.zip` | Scan once → `output/apple_health.duckdb` (gitignored) |
+| Local DB | `just build-db export_zip=/path/to/export.zip` | Scan once → `output/healthkit_store.duckdb` (gitignored) |
 | List walks | `just list-walks 20` | SQL over the local DB (no marimo) |
 | Metrics notebook | `just explore` | marimo over fixture or a path you set |
 | Map walks | `just map-walks` | Folium map of walks/hikes (experimental UI) |
@@ -209,7 +215,7 @@ Illustrative offline smoke on one personal export kept **outside** git (~270 M
 
 | Metric | Order of magnitude |
 |--------|--------------------|
-| `read_apple_health` rows | ~**4.3 million** top-level records |
+| `read_healthkit_export` rows | ~**4.3 million** top-level records |
 | Workouts | ~**1.7k** |
 | Activity summary days | ~**2.7k** |
 | Walking/Hiking GPS (when built into local DB) | ~**1.3k** routes, millions of track points |
@@ -218,7 +224,7 @@ Wall-clock and peak RAM depend on machine, disk, and whether you pull **all** re
 
 **Optimisation opportunities (not all shipped):** streaming execute (emit chunks without buffering the whole bind), streaming zip inflate, named `types`/`start`/`end` pushdown, string interning, incremental DB append by `gpx_path`. Tracked in [ROADMAP.md](docs/ROADMAP.md).
 
-**Recommended workflow:** scan → filter → Parquet and/or local DuckDB → analytics/maps. Do not loop `FROM read_apple_health(huge.zip)` in a notebook cell.
+**Recommended workflow:** scan → filter → Parquet and/or local DuckDB → analytics/maps. Do not loop `FROM read_healthkit_export(huge.zip)` in a notebook cell.
 
 ## Privacy
 

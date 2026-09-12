@@ -2,17 +2,18 @@
 
 Last updated: 2026-09-12.
 
-**duckdb-apple-health** (Layer A — the C scanner) is published as a DuckDB
-**community extension** on **macOS**:
+**duckdb-healthkit-export** ships the DuckDB C scanner as community extension
+**`healthkit_export`** (macOS first):
 
 ```sql
-INSTALL apple_health FROM community;
-LOAD apple_health;
+INSTALL healthkit_export FROM community;
+LOAD healthkit_export;
 ```
 
-- Listing PR (merged): https://github.com/duckdb/community-extensions/pull/2653
-- Package version: **0.1.1** (source tag **v0.1.1** / C API stamp **v1.2.0**)
-- Platforms: **`osx_arm64`**, **`osx_amd64`** for DuckDB **v1.5.5** community CDN
+- First listing (name **`apple_health`**, superseded): https://github.com/duckdb/community-extensions/pull/2653
+- Current package name: **`healthkit_export`** (v**0.2.0**, C API stamp **v1.2.0**)
+- Descriptor path: `extensions/healthkit_export/description.yml`
+- Platforms: **`osx_arm64`**, **`osx_amd64`** for DuckDB **v1.5.5**
 - Linux / Windows / Wasm: still excluded until multi-platform CI is widened
 
 Related: [DESIGN.md](DESIGN.md) · [RELEASE_PLAN.md](RELEASE_PLAN.md) · [VERSIONING.md](VERSIONING.md) · [ROADMAP.md](ROADMAP.md).
@@ -23,8 +24,9 @@ Related: [DESIGN.md](DESIGN.md) · [RELEASE_PLAN.md](RELEASE_PLAN.md) · [VERSIO
 
 | | |
 |--|--|
-| Community PR | [#2653](https://github.com/duckdb/community-extensions/pull/2653) **merged** (2026-09-10) |
-| CDN (example) | `https://community-extensions.duckdb.org/v1.5.5/osx_arm64/apple_health.duckdb_extension.gz` |
+| First community PR | [#2653](https://github.com/duckdb/community-extensions/pull/2653) published `apple_health` (superseded by rename) |
+| Current name | **`healthkit_export`** (v0.2.0) |
+| CDN (example) | `https://community-extensions.duckdb.org/v1.5.5/osx_arm64/healthkit_export.duckdb_extension.gz` |
 | Verified | `INSTALL` / `LOAD` + fixture queries on DuckDB **1.5.5** (macOS arm64) |
 
 ## What “community extension” means
@@ -39,19 +41,19 @@ uploads of your `.duckdb_extension` binaries.
 4. DuckDB **signs** the binaries and hosts them.
 5. Users on a **recent stable** DuckDB get `INSTALL … FROM community`.
 
-You keep developing in **Mjboothaus/duckdb-apple-health**. Community is a **distribution
+You keep developing in **Mjboothaus/duckdb-healthkit-export**. Community is a **distribution
 channel**, not a second source tree (unless you later split monorepo concerns).
 
 ---
 
 ## What stays in this repo vs what community ships
 
-| In this monorepo | Community `INSTALL apple_health` |
+| In this monorepo | Community `INSTALL healthkit_export` |
 |------------------|----------------------------------|
 | C extension (`src/`, `duckdb_capi/`, template Makefile) | **Yes** — this is what they build |
 | SQLLogic under `test/sql/` | **Yes** — should pass in their CI |
 | Fixture `test/data/` (synthetic only) | **Yes** — needed for tests |
-| Python `health-data-store`, marimo, maps, Photos | **No** — never inside the extension binary |
+| Python `healthkit-store`, marimo, maps, Photos | **No** — never inside the extension binary |
 | Personal `output/`, real exports | **No** — never in git or CI |
 
 Python add-ons remain optional ([PYTHON_PACKAGE.md](PYTHON_PACKAGE.md)). Do **not** try to
@@ -77,7 +79,7 @@ This project uses **`duckdb/extension-template-c`** (stable **C API**), not the 
 
 - [ ] Confirm community CI can build **C-API / C_STRUCT** extensions (template README historically said community support was maturing — verify current status on Discord / recent community PRs).
 - [ ] Multi-arch builds green under **this** repo’s GitHub Actions (`MainDistributionPipeline.yml` / extension-ci-tools), or a documented subset (`osx_arm64` first is fine for a personal v0.1 tag; community usually wants the full matrix).
-- [ ] Extension **name** unique: propose `apple_health` (matches binary / `LOAD` name). Must match `^[a-z][a-z0-9_-]*$`.
+- [ ] Extension **name** unique: propose `healthkit_export` (matches binary / `LOAD` name). Must match `^[a-z][a-z0-9_-]*$`.
 - [ ] No network I/O or secrets in the extension (already a design rule).
 - [ ] Licence Apache-2.0 (already).
 
@@ -104,7 +106,7 @@ File location in the **community-extensions** fork:
 
 ```yaml
 extension:
-  name: apple_health
+  name: healthkit_export
   description: >
     Read Apple Health export.zip / export.xml as typed DuckDB tables
     (records, workouts, activity summaries, workout routes and GPX points).
@@ -118,14 +120,14 @@ extension:
   # requires_toolchains: ...                            # only if CI needs extras
 
 repo:
-  github: Mjboothaus/duckdb-apple-health
+  github: Mjboothaus/duckdb-healthkit-export
   ref: REPLACE_WITH_COMMIT_SHA_OF_v0.1.0   # not a floating branch name
 
 docs:
   hello_world: |
-    -- After: INSTALL apple_health FROM community; LOAD apple_health;
+    -- After: INSTALL healthkit_export FROM community; LOAD healthkit_export;
     SELECT type_short, count(*) AS n
-    FROM read_apple_health('export.zip')
+    FROM read_healthkit_export('export.zip')
     GROUP BY 1
     ORDER BY n DESC
     LIMIT 10;
@@ -158,7 +160,7 @@ and reports failures on your `ref`.
 
 Community only needs the C tree + tests + fixture. You can later:
 
-- Extract `extension/` into `duckdb-apple-health-ext`, or  
+- Extract `extension/` into `duckdb-healthkit-export-ext`, or  
 - Teach community CI to build from a subdirectory (if supported),
 
 but that is optional. Until then, ensure extension CI paths ignore heavy Python extras.
@@ -175,8 +177,8 @@ duckdb -unsigned
 ```
 
 ```sql
-LOAD 'build/debug/extension/apple_health/apple_health.duckdb_extension';
-FROM read_apple_health('test/data/export.zip');
+LOAD 'build/debug/extension/healthkit_export/healthkit_export.duckdb_extension';
+FROM read_healthkit_export('test/data/export.zip');
 ```
 
 ### B. GitHub Release binaries
@@ -192,13 +194,13 @@ Layout DuckDB already understands:
 https://example.com/extensions/
   v1.5.x/          # or version directory DuckDB expects for your build
     osx_arm64/
-      apple_health.duckdb_extension
+      healthkit_export.duckdb_extension
     linux_amd64/
       ...
 ```
 
 ```sql
-INSTALL apple_health FROM 'https://example.com/extensions';
+INSTALL healthkit_export FROM 'https://example.com/extensions';
 ```
 
 Binaries are typically **unsigned** unless you operate a signing story. Useful if community
@@ -224,7 +226,7 @@ Python / walk-stories stay on the “optional add-ons” path and must not gate 
 
 ## Name collisions and branding
 
-- Extension name **`apple_health`** is descriptive of the **export format**, not an Apple product claim. Keep README clear: third-party scanner for Health **exports**.
+- Extension name **`healthkit_export`** is descriptive of the **export format**, not an Apple product claim. Keep README clear: third-party scanner for Health **exports**.
 - If community maintainers require a rename, prefer `apple_health_export` or `healthkit_export` and plan a SQL alias period — cheaper before first community publish than after.
 
 ---
@@ -261,4 +263,4 @@ Python / walk-stories stay on the “optional add-ons” path and must not gate 
 - Community docs / submit: https://duckdb.org/community_extensions/documentation.html  
 - C API template: https://github.com/duckdb/extension-template-c  
 - Community repo: https://github.com/duckdb/community-extensions  
-- This project: https://github.com/Mjboothaus/duckdb-apple-health  
+- This project: https://github.com/Mjboothaus/duckdb-healthkit-export  

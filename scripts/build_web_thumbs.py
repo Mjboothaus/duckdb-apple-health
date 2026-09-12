@@ -6,12 +6,12 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from health_data_store import HealthDataStore
-from health_data_store.photos import prepare_photos_for_map
+from healthkit_store import HealthkitStore
+from healthkit_store.photos import prepare_photos_for_map
 
 def main() -> None:
     journey_id = sys.argv[1].strip() if len(sys.argv) > 1 and sys.argv[1].strip() else None
-    store = HealthDataStore()
+    store = HealthkitStore()
     store.connect()
     if journey_id:
         ph = store.photos_for_journey(journey_id)
